@@ -76,19 +76,6 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     audio.addEventListener("timeupdate", () => {
       set({ position: audio.currentTime, duration: audio.duration || 0 });
-      // Preload next at 80% played
-      if (audio.duration > 30 && audio.currentTime / audio.duration > 0.8) {
-        const { queue, index, preloader } = get();
-        const nextTrack = queue[index + 1];
-        if (nextTrack && preloader && preloader.dataset.id !== nextTrack.videoId) {
-          getStream(nextTrack.videoId).then((s) => {
-            if (s.streamUrl && get().queue[get().index + 1]?.videoId === nextTrack.videoId) {
-              preloader.src = s.streamUrl;
-              preloader.dataset.id = nextTrack.videoId;
-            }
-          }).catch(() => {/* ignore */});
-        }
-      }
     });
 
     audio.addEventListener("ended", () => set({ isLoading: false, isPlaying: false }));
@@ -102,9 +89,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
     audio.addEventListener("stalled", () => set({ isLoading: true }));
 
-    const preloader = new Audio();
-    preloader.preload = "auto";
-    set({ audio, preloader });
+    set({ audio });
   },
 
   playQueue: async (tracks, startIndex = 0) => {
