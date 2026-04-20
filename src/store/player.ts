@@ -141,12 +141,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     try {
       audio.pause();
-      audio.currentTime = 0;
-      audio.src = "";
+      audio.removeAttribute("src");
       audio.load();
     } catch {/* ignore */}
 
-    console.log("PLAY NEW SONG", track.videoId, streamUrl);
+    console.log("PLAY START", track.videoId, streamUrl);
 
     const onPlaying = () => {
       if (get()._reqToken !== token) return;
@@ -163,18 +162,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     try {
       await audio.play();
       if (get()._reqToken !== token) return;
-      set({ isPlaying: true, isLoading: false, current: track });
+      set({ isPlaying: true, isLoading: false });
     } catch (err: any) {
       audio.removeEventListener("playing", onPlaying);
       if (err?.name === "AbortError" || get()._reqToken !== token) return;
       console.warn("audio.play() rejected", err);
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      // Keep current track set so mini player remains visible
+      set({ isLoading: false, isPlaying: false });
       return;
     }
 
