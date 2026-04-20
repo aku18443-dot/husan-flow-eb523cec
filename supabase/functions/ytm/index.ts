@@ -41,37 +41,67 @@ function rankedInstances(): string[] {
   });
 }
 
-async function tryFetch(path: string, timeoutMs = 4000): Promise<any> {
-  const order = rankedInstances();
+// Fast race-based fetch: hit the top N instances in parallel and use whichever responds first.
+async function raceFetch(path: string, timeoutMs = 3500, parallel = 4): Promise<any> {
+  const order = rankedInstances().slice(0, parallel);
+  const attempts = order.map((base) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const start = Date.now();
+    return fetch(`${base}${path}`, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "HusanMusic/1.0" },
+    })
+      .then(async (res) => {
+        clearTimeout(t);
+        if (!res.ok) {
+          const h = health.get(base)!;
+          h.fails += 1;
+          h.lastFail = Date.now();
+          throw new Error(`${base} -> ${res.status}`);
+        }
+        const json = await res.json();
+        const latency = Date.now() - start;
+        const h = health.get(base)!;
+        h.latency = h.latency * 0.5 + latency * 0.5;
+        h.fails = Math.max(0, h.fails - 1);
+        return json;
+      })
+      .catch((e) => {
+        clearTimeout(t);
+        const h = health.get(base)!;
+        h.fails += 1;
+        h.lastFail = Date.now();
+        throw e;
+      });
+  });
+  // Promise.any → first fulfilled wins
+  // @ts-ignore - Deno supports Promise.any
+  return Promise.any(attempts);
+}
+
+// Sequential fallback (only used if race fails) — tries the rest of the instances
+async function tryFetch(path: string, timeoutMs = 3500): Promise<any> {
+  try {
+    return await raceFetch(path, timeoutMs, 4);
+  } catch {
+    // fall through to remaining instances sequentially
+  }
+  const order = rankedInstances().slice(4);
   let lastErr: unknown = null;
   for (const base of order) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const start = Date.now();
     try {
       const res = await fetch(`${base}${path}`, {
         signal: ctrl.signal,
         headers: { "User-Agent": "HusanMusic/1.0" },
       });
       clearTimeout(t);
-      if (!res.ok) {
-        const h = health.get(base)!;
-        h.fails += 1;
-        h.lastFail = Date.now();
-        lastErr = new Error(`${base} -> ${res.status}`);
-        continue;
-      }
-      const json = await res.json();
-      const latency = Date.now() - start;
-      const h = health.get(base)!;
-      h.latency = h.latency * 0.5 + latency * 0.5;
-      h.fails = Math.max(0, h.fails - 1);
-      return json;
+      if (!res.ok) { lastErr = new Error(`${base} -> ${res.status}`); continue; }
+      return await res.json();
     } catch (e) {
       clearTimeout(t);
-      const h = health.get(base)!;
-      h.fails += 1;
-      h.lastFail = Date.now();
       lastErr = e;
     }
   }
@@ -153,29 +183,6 @@ function sortCandidates(items: Candidate[]): Candidate[] {
     });
 }
 
-async function probeCandidate(candidate: Candidate): Promise<string> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const res = await fetch(candidate.url, {
-      signal: ctrl.signal,
-      headers: {
-        "User-Agent": "HusanMusic/1.0",
-        Range: "bytes=0-1",
-        Referer: "https://www.youtube.com/",
-        Origin: "https://www.youtube.com",
-      },
-    });
-    if (!(res.ok || res.status === 206)) throw new Error(`probe status ${res.status}`);
-    const contentType = baseMime(res.headers.get("content-type") || candidate.mimeType);
-    if (!contentType.startsWith("audio/")) throw new Error(`invalid content-type ${contentType}`);
-    await res.arrayBuffer();
-    return contentType;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 async function fetchUpstreamAudio(candidate: Candidate, req: Request): Promise<Response | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20_000);
@@ -222,7 +229,7 @@ async function fetchUpstreamAudio(candidate: Candidate, req: Request): Promise<R
 async function resolvePipedStream(id: string): Promise<ResolvedStream | null> {
   let raw: any = null;
   try {
-    raw = await tryFetch(`/streams/${id}`, 6000);
+    raw = await tryFetch(`/streams/${id}`, 3500);
   } catch {
     return null;
   }
@@ -254,56 +261,67 @@ async function resolvePipedStream(id: string): Promise<ResolvedStream | null> {
 }
 
 async function resolveInvidiousStream(id: string): Promise<ResolvedStream | null> {
-  for (const base of INVIDIOUS_INSTANCES) {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 6000);
-      const res = await fetch(`${base}/api/v1/videos/${id}?fields=title,author,lengthSeconds,videoThumbnails,adaptiveFormats,authorThumbnails`, {
-        signal: ctrl.signal,
-        headers: { "User-Agent": "HusanMusic/1.0" },
-      });
-      clearTimeout(t);
-      if (!res.ok) continue;
-      const v = await res.json();
-      const candidates = sortCandidates(
-        (v.adaptiveFormats ?? []).map((stream: any) => ({
-          url: stream?.url ?? "",
-          mimeType: baseMime(stream?.type),
-          bitrate: Number(stream?.bitrate ?? 0),
-        })),
-      );
-      if (!candidates.length) continue;
-      const thumbs = v.videoThumbnails ?? [];
-      const avatars = v.authorThumbnails ?? [];
-      return {
-        title: v.title ?? "",
-        artist: (v.author ?? "").replace(/ - Topic$/, ""),
-        duration: Number(v.lengthSeconds || 0),
-        thumbnail: thumbs[0]?.url ?? `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-        uploaderAvatar: avatars[avatars.length - 1]?.url ?? null,
-        related: [],
-        candidates,
-      };
-    } catch {
-      continue;
-    }
+  // Race Invidious instances in parallel
+  const attempts = INVIDIOUS_INSTANCES.map((base) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3500);
+    return fetch(`${base}/api/v1/videos/${id}?fields=title,author,lengthSeconds,videoThumbnails,adaptiveFormats,authorThumbnails`, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "HusanMusic/1.0" },
+    })
+      .then(async (res) => {
+        clearTimeout(t);
+        if (!res.ok) throw new Error(`${base} -> ${res.status}`);
+        const v = await res.json();
+        const candidates = sortCandidates(
+          (v.adaptiveFormats ?? []).map((stream: any) => ({
+            url: stream?.url ?? "",
+            mimeType: baseMime(stream?.type),
+            bitrate: Number(stream?.bitrate ?? 0),
+          })),
+        );
+        if (!candidates.length) throw new Error("no candidates");
+        const thumbs = v.videoThumbnails ?? [];
+        const avatars = v.authorThumbnails ?? [];
+        return {
+          title: v.title ?? "",
+          artist: (v.author ?? "").replace(/ - Topic$/, ""),
+          duration: Number(v.lengthSeconds || 0),
+          thumbnail: thumbs[0]?.url ?? `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+          uploaderAvatar: avatars[avatars.length - 1]?.url ?? null,
+          related: [] as any[],
+          candidates,
+        } as ResolvedStream;
+      })
+      .catch((e) => { clearTimeout(t); throw e; });
+  });
+  try {
+    // @ts-ignore
+    return await Promise.any(attempts);
+  } catch {
+    return null;
   }
-  return null;
 }
 
-async function resolveStream(id: string, validate = true): Promise<(ResolvedStream & { candidate: Candidate; mimeType: string }) | null> {
-  const sources = [await resolvePipedStream(id), await resolveInvidiousStream(id)].filter(Boolean) as ResolvedStream[];
-  for (const source of sources) {
-    for (const candidate of source.candidates.slice(0, 5)) {
-      try {
-        const mimeType = validate ? await probeCandidate(candidate) : baseMime(candidate.mimeType);
-        return { ...source, candidate, mimeType };
-      } catch {
-        continue;
-      }
-    }
+// Resolve in parallel — return whichever provider responds first with candidates.
+// SKIP probing: the browser will fetch the audio URL via our /audio proxy directly,
+// and we no longer pre-validate (which added 1-8s of dead time).
+async function resolveStreamFast(id: string): Promise<ResolvedStream | null> {
+  const piped = resolvePipedStream(id).catch(() => null);
+  const invid = resolveInvidiousStream(id).catch(() => null);
+  // Race for first non-null with candidates
+  try {
+    // @ts-ignore Promise.any
+    const winner = await Promise.any([
+      piped.then((s) => (s && s.candidates.length ? s : Promise.reject(new Error("empty")))),
+      invid.then((s) => (s && s.candidates.length ? s : Promise.reject(new Error("empty")))),
+    ]);
+    return winner as ResolvedStream;
+  } catch {
+    // Last-ditch: await both (one may resolve a moment later)
+    const [p, i] = await Promise.all([piped, invid]);
+    return (p && p.candidates.length ? p : null) ?? (i && i.candidates.length ? i : null);
   }
-  return null;
 }
 
 Deno.serve(async (req) => {
@@ -342,8 +360,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      const resolved = await resolveStream(id, true);
-      if (!resolved) {
+      const resolved = await resolveStreamFast(id);
+      if (!resolved || !resolved.candidates.length) {
         return new Response(JSON.stringify({
           error: "no compatible stream available",
           videoId: id,
@@ -367,8 +385,9 @@ Deno.serve(async (req) => {
         artist: resolved.artist,
         duration: resolved.duration,
         thumbnail: resolved.thumbnail,
+        // Always proxy via our /audio endpoint (CORS + range support)
         streamUrl: `${publicBase}?action=audio&id=${encodeURIComponent(id)}`,
-        mimeType: resolved.mimeType,
+        mimeType: baseMime(resolved.candidates[0].mimeType),
         related: resolved.related,
         uploaderAvatar: resolved.uploaderAvatar,
       };
@@ -381,12 +400,21 @@ Deno.serve(async (req) => {
         });
       }
 
-      const sources = [await resolvePipedStream(id), await resolveInvidiousStream(id)].filter(Boolean) as ResolvedStream[];
-      for (const source of sources) {
-        for (const candidate of source.candidates.slice(0, 5)) {
-          const proxied = await fetchUpstreamAudio(candidate, req);
-          if (proxied) return proxied;
-        }
+      // Fast resolve in parallel, then race candidates: try top 2 in parallel,
+      // first one that returns audio bytes wins. This eliminates serial waiting.
+      const resolved = await resolveStreamFast(id);
+      if (!resolved || !resolved.candidates.length) {
+        return new Response(JSON.stringify({ error: "no candidates" }), {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        });
+      }
+
+      // Try top candidate first (fast path). If null, try next sequentially.
+      // Keep it simple — racing audio fetches wastes upstream bandwidth.
+      for (const candidate of resolved.candidates.slice(0, 4)) {
+        const proxied = await fetchUpstreamAudio(candidate, req);
+        if (proxied) return proxied;
       }
 
       return new Response(JSON.stringify({ error: "audio proxy failed" }), {

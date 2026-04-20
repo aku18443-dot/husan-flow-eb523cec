@@ -202,64 +202,39 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     recordPlay(track);
 
     try {
-      let lastError: unknown = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
+      let streamUrl: string | null = null;
+      const usePreloaded = preloader && preloader.dataset.id === track.videoId && preloader.src;
+
+      if (usePreloaded) {
+        streamUrl = preloader!.src;
+        preloader!.removeAttribute("src");
+        delete preloader!.dataset.id;
+        console.log("USING PRELOADED STREAM", track.videoId);
+      } else {
+        const stream = await getStream(track.videoId);
         if (get()._reqToken !== token) return;
-        try {
-          let streamUrl: string | null = null;
-          const usePreloaded = attempt === 0 && preloader && preloader.dataset.id === track.videoId && preloader.src;
-
-          if (usePreloaded) {
-            streamUrl = preloader!.src;
-            preloader!.removeAttribute("src");
-            delete preloader!.dataset.id;
-          } else {
-            const stream = await getStream(track.videoId, { fresh: attempt > 0 });
-            if (get()._reqToken !== token) return;
-            console.log("STREAM URL", track.videoId, stream.streamUrl);
-            if (!stream.streamUrl) throw new Error("no stream");
-            streamUrl = stream.streamUrl;
-          }
-
-          if (!streamUrl) throw new Error("empty stream url");
-          if (get()._reqToken !== token) return;
-
-          audio.src = streamUrl;
-          audio.preload = "auto";
-          audio.load();
-
-          const playbackConfirmed = confirmPlayback(token);
-
-          try {
-            await audio.play();
-          } catch (err: any) {
-            console.error("play failed", err);
-            throw err;
-          }
-
-          await Promise.race([
-            playbackConfirmed,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("playback confirmation timeout")), 10_000)),
-          ]);
-
-          lastError = null;
-          break;
-        } catch (err) {
-          lastError = err;
-          console.warn(`play attempt ${attempt + 1} failed`, err);
-          try {
-            audio.pause();
-            audio.removeAttribute("src");
-            audio.load();
-          } catch {/* ignore */}
-          set({ isLoading: attempt < 2, isPlaying: false });
-          if (attempt < 2) {
-            await new Promise((resolve) => setTimeout(resolve, 350));
-          }
-        }
+        console.log("STREAM URL", track.videoId, stream.streamUrl);
+        streamUrl = stream.streamUrl;
       }
 
-      if (lastError) throw lastError;
+      if (!streamUrl) throw new Error("no stream url");
+      if (get()._reqToken !== token) return;
+
+      // Listen for playing confirmation in the background — don't block on it.
+      confirmPlayback(token).catch((err) => {
+        console.warn("playback not confirmed", err);
+      });
+
+      audio.src = streamUrl;
+      audio.preload = "auto";
+      // Kick off play() IMMEDIATELY — browser will buffer + start as soon as bytes arrive.
+      // Don't await anything else first.
+      audio.play().catch((err) => {
+        // AbortError happens when user clicks another track quickly — that's fine.
+        if (err?.name !== "AbortError") {
+          console.warn("audio.play() rejected", err);
+        }
+      });
 
       if ("mediaSession" in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
