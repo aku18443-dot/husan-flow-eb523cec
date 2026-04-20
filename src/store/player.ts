@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Track, getStream, getRelated, searchTracks } from "@/lib/api";
+import { Track, getRelated, searchTracks } from "@/lib/api";
 import { recordPlay, getTopArtists, getRecent } from "@/lib/history";
 
 type PlayerState = {
