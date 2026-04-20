@@ -4,7 +4,6 @@ import { recordPlay, getTopArtists, getRecent } from "@/lib/history";
 
 type PlayerState = {
   audio: HTMLAudioElement | null;
-  preloader: HTMLAudioElement | null;
   current: Track | null;
   queue: Track[];
   index: number;
@@ -13,7 +12,6 @@ type PlayerState = {
   position: number;
   duration: number;
   expanded: boolean;
-  // Internal request token to ignore stale stream resolutions
   _reqToken: number;
   init: () => void;
   playQueue: (tracks: Track[], startIndex?: number) => Promise<void>;
@@ -24,6 +22,8 @@ type PlayerState = {
   seek: (s: number) => void;
   setExpanded: (v: boolean) => void;
 };
+
+const PROJECT_URL = "https://fsncpitxcehpttrrcgni.supabase.co";
 
 async function buildAutoQueue(seed: Track): Promise<Track[]> {
   const seen = new Set<string>([seed.videoId]);
@@ -58,7 +58,6 @@ async function buildAutoQueue(seed: Track): Promise<Track[]> {
 
 export const usePlayer = create<PlayerState>((set, get) => ({
   audio: null,
-  preloader: null,
   current: null,
   queue: [],
   index: -1,
@@ -71,6 +70,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   init: () => {
     if (get().audio) return;
+
     const audio = new Audio();
     audio.preload = "auto";
 
@@ -78,16 +78,30 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       set({ position: audio.currentTime, duration: audio.duration || 0 });
     });
 
-    audio.addEventListener("ended", () => set({ isLoading: false, isPlaying: false }));
     audio.addEventListener("play", () => set({ isPlaying: true }));
     audio.addEventListener("pause", () => set({ isPlaying: false }));
     audio.addEventListener("waiting", () => set({ isLoading: true }));
     audio.addEventListener("playing", () => set({ isLoading: false, isPlaying: true }));
+    audio.addEventListener("stalled", () => set({ isLoading: true }));
+    audio.addEventListener("ended", () => {
+      set({
+        current: null,
+        isLoading: false,
+        isPlaying: false,
+        position: 0,
+        duration: 0,
+      });
+    });
     audio.addEventListener("error", () => {
       console.warn("audio element error", audio.error);
-      set({ isLoading: false, isPlaying: false });
+      set({
+        current: null,
+        isLoading: false,
+        isPlaying: false,
+        position: 0,
+        duration: 0,
+      });
     });
-    audio.addEventListener("stalled", () => set({ isLoading: true }));
 
     set({ audio });
   },
@@ -97,12 +111,12 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const safeIdx = Math.max(0, Math.min(startIndex, tracks.length - 1));
     set({ queue: tracks, index: safeIdx });
     await get().playTrack(tracks[safeIdx]);
-    // Extend queue with related (Spotify-like). Only after the user-clicked track is set.
+
     const seed = tracks[safeIdx];
     if (seed) {
       buildAutoQueue(seed).then((extra) => {
         const { queue, current } = get();
-        if (current?.videoId !== seed.videoId) return; // user changed track meanwhile
+        if (current?.videoId !== seed.videoId) return;
         const ids = new Set(queue.map((t) => t.videoId));
         const filtered = extra.filter((t) => !ids.has(t.videoId));
         if (filtered.length) set({ queue: [...queue, ...filtered] });
@@ -111,12 +125,15 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   playTrack: async (track) => {
-    console.log("CLICKED", track.videoId, track.title);
     const { audio } = get();
     if (!audio) return;
 
-    // Invalidate any in-flight stream resolution / metadata fetch
     const token = get()._reqToken + 1;
+    const streamUrl = `${PROJECT_URL}/functions/v1/ytm?action=audio&id=${encodeURIComponent(track.videoId)}`;
+
+    console.log("CLICKED", track.videoId, track.title);
+    console.log("STOP OLD SONG", get().current?.videoId ?? "none");
+
     set({
       _reqToken: token,
       current: track,
@@ -125,24 +142,17 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       position: 0,
       duration: 0,
     });
+    console.log("MINI PLAYER UPDATED", track.videoId, track.title);
 
-    // SINGLE INSTANCE: hard-stop previous playback completely
     try {
-      if (!audio.paused) audio.pause();
+      audio.pause();
       audio.currentTime = 0;
-      audio.removeAttribute("src");
+      audio.src = "";
       audio.load();
     } catch {/* ignore */}
 
-    // INSTANT PATH: skip the slow /streams resolver entirely.
-    // The /audio proxy resolves + streams bytes server-side in one round-trip.
-    // Browser starts playing as soon as first bytes arrive (~300-800ms).
-    const PROJECT_URL = "https://fsncpitxcehpttrrcgni.supabase.co";
-    const streamUrl = `${PROJECT_URL}/functions/v1/ytm?action=audio&id=${encodeURIComponent(track.videoId)}`;
+    console.log("PLAY NEW SONG", track.videoId, streamUrl);
 
-    recordPlay(track);
-
-    // Lightweight playing-event log (non-blocking)
     const onPlaying = () => {
       if (get()._reqToken !== token) return;
       console.log("PLAYING EVENT", track.videoId);
@@ -150,12 +160,28 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     };
     audio.addEventListener("playing", onPlaying);
 
-    audio.src = streamUrl;
     audio.preload = "auto";
-    console.log("PLAY CALLED", track.videoId, streamUrl);
-    audio.play().catch((err) => {
-      if (err?.name !== "AbortError") console.warn("audio.play() rejected", err);
-    });
+    audio.src = streamUrl;
+
+    recordPlay(track);
+
+    try {
+      await audio.play();
+      if (get()._reqToken !== token) return;
+      set({ isPlaying: true, isLoading: false, current: track });
+    } catch (err: any) {
+      audio.removeEventListener("playing", onPlaying);
+      if (err?.name === "AbortError" || get()._reqToken !== token) return;
+      console.warn("audio.play() rejected", err);
+      set({
+        current: null,
+        isLoading: false,
+        isPlaying: false,
+        position: 0,
+        duration: 0,
+      });
+      return;
+    }
 
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -181,16 +207,19 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const { queue, index } = get();
     if (index + 1 < queue.length) {
       set({ index: index + 1 });
-      get().playTrack(queue[index + 1]);
+      void get().playTrack(queue[index + 1]);
     }
   },
 
   prev: () => {
     const { queue, index, audio } = get();
-    if (audio && audio.currentTime > 4) { audio.currentTime = 0; return; }
+    if (audio && audio.currentTime > 4) {
+      audio.currentTime = 0;
+      return;
+    }
     if (index > 0) {
       set({ index: index - 1 });
-      get().playTrack(queue[index - 1]);
+      void get().playTrack(queue[index - 1]);
     }
   },
 
@@ -198,7 +227,10 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const { audio } = get();
     if (!audio) return;
     console.log("SEEK EVENT", s);
-    try { audio.currentTime = s; } catch {/* ignore */}
+    try {
+      audio.currentTime = s;
+    } catch {/* ignore */}
   },
+
   setExpanded: (v) => set({ expanded: v }),
 }));
