@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 98%;
+
+    --card: 330 20% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 330 20% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Neon pink primary */
+    --primary: 327 100% 59%;            /* #FF2E93 */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 322 100% 72%;       /* #FF6EC7 */
+
+    --secondary: 330 12% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 330 10% 14%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 322 100% 72%;
+    --accent-foreground: 0 0% 7%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 327 30% 18%;
+    --input: 327 20% 16%;
+    --ring: 327 100% 59%;
+
+    --radius: 0.875rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(327 100% 18% / 0.85), hsl(280 60% 12% / 0.6) 45%, hsl(0 0% 6%) 75%);
+    --gradient-card: linear-gradient(145deg, hsl(327 30% 14% / 0.9), hsl(0 0% 9% / 0.92));
+    --gradient-accent: linear-gradient(135deg, hsl(327 100% 59%), hsl(322 100% 72%));
+    --gradient-glass: linear-gradient(135deg, hsl(327 100% 75% / 0.08), hsl(0 0% 100% / 0.02));
+    --gradient-animated: linear-gradient(120deg, hsl(327 100% 59%), hsl(322 100% 72%), hsl(280 90% 60%), hsl(327 100% 59%));
+
+    --shadow-glow: 0 10px 50px -10px hsl(327 100% 59% / 0.65);
+    --shadow-neon: 0 0 24px hsl(327 100% 59% / 0.55), 0 0 60px hsl(322 100% 72% / 0.35);
+    --shadow-card: 0 8px 30px -8px hsl(327 60% 4% / 0.7);
+
+    --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 327 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 7%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 322 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 90%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -0.02em; }
+}
+
+@layer components {
+  .glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(327 100% 75% / 0.12);
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .text-gradient {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-animated {
+    background: var(--gradient-animated);
+    background-size: 300% 300%;
+    animation: gradient-shift 12s ease infinite;
+  }
+  .shadow-neon { box-shadow: var(--shadow-neon); }
+  .neon-ring { box-shadow: 0 0 0 1px hsl(327 100% 59% / 0.4), 0 0 24px hsl(327 100% 59% / 0.35); }
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.8); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes marquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(calc(-100% + 180px)); }
+}
+@keyframes gradient-shift {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-float-up { animation: float-up 0.6s var(--transition-smooth) both; }
+.animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+.animate-marquee { display: inline-block; animation: marquee 9s ease-in-out infinite; }
