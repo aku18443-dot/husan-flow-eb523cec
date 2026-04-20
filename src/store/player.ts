@@ -84,23 +84,18 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     audio.addEventListener("playing", () => set({ isLoading: false, isPlaying: true }));
     audio.addEventListener("stalled", () => set({ isLoading: true }));
     audio.addEventListener("ended", () => {
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      console.log("NEXT SONG TRIGGERED");
+      set({ isPlaying: false, position: 0 });
+      // Auto-advance — keep current track visible until next loads
+      get().next();
     });
     audio.addEventListener("error", () => {
+      // Ignore errors caused by intentional src reset (empty src)
+      if (!audio.src || audio.src === window.location.href) return;
       console.warn("audio element error", audio.error);
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      // Do NOT clear current track — keep mini player visible.
+      // Just mark as not playing so user can retry / skip.
+      set({ isLoading: false, isPlaying: false });
     });
 
     set({ audio });
@@ -146,12 +141,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     try {
       audio.pause();
-      audio.currentTime = 0;
-      audio.src = "";
+      audio.removeAttribute("src");
       audio.load();
     } catch {/* ignore */}
 
-    console.log("PLAY NEW SONG", track.videoId, streamUrl);
+    console.log("PLAY START", track.videoId, streamUrl);
 
     const onPlaying = () => {
       if (get()._reqToken !== token) return;
@@ -168,18 +162,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     try {
       await audio.play();
       if (get()._reqToken !== token) return;
-      set({ isPlaying: true, isLoading: false, current: track });
+      set({ isPlaying: true, isLoading: false });
     } catch (err: any) {
       audio.removeEventListener("playing", onPlaying);
       if (err?.name === "AbortError" || get()._reqToken !== token) return;
       console.warn("audio.play() rejected", err);
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      // Keep current track set so mini player remains visible
+      set({ isLoading: false, isPlaying: false });
       return;
     }
 
@@ -204,10 +193,23 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   next: () => {
-    const { queue, index } = get();
+    const { queue, index, current } = get();
     if (index + 1 < queue.length) {
       set({ index: index + 1 });
       void get().playTrack(queue[index + 1]);
+      return;
+    }
+    // Queue ended — fetch more for infinite playback
+    if (current) {
+      buildAutoQueue(current).then((extra) => {
+        if (!extra.length) return;
+        const { queue: q } = get();
+        const ids = new Set(q.map((t) => t.videoId));
+        const filtered = extra.filter((t) => !ids.has(t.videoId));
+        if (!filtered.length) return;
+        set({ queue: [...q, ...filtered], index: q.length });
+        void get().playTrack(filtered[0]);
+      });
     }
   },
 
@@ -225,11 +227,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   seek: (s) => {
     const { audio } = get();
-    if (!audio) return;
-    console.log("SEEK EVENT", s);
+    if (!audio || !isFinite(s)) return;
     try {
       audio.currentTime = s;
-    } catch {/* ignore */}
+      console.log("SEEK APPLIED", s);
+    } catch (e) {
+      console.warn("seek failed", e);
+    }
   },
 
   setExpanded: (v) => set({ expanded: v }),

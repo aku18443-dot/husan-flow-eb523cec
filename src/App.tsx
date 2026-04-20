@@ -7,12 +7,14 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SearchPage from "./pages/Search.tsx";
 import ArtistsPage from "./pages/Artists.tsx";
+import { DynamicBackground } from "./components/DynamicBackground";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <DynamicBackground />
       <Toaster />
       <Sonner />
       <BrowserRouter>
