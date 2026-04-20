@@ -193,10 +193,23 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   next: () => {
-    const { queue, index } = get();
+    const { queue, index, current } = get();
     if (index + 1 < queue.length) {
       set({ index: index + 1 });
       void get().playTrack(queue[index + 1]);
+      return;
+    }
+    // Queue ended — fetch more for infinite playback
+    if (current) {
+      buildAutoQueue(current).then((extra) => {
+        if (!extra.length) return;
+        const { queue: q } = get();
+        const ids = new Set(q.map((t) => t.videoId));
+        const filtered = extra.filter((t) => !ids.has(t.videoId));
+        if (!filtered.length) return;
+        set({ queue: [...q, ...filtered], index: q.length });
+        void get().playTrack(filtered[0]);
+      });
     }
   },
 
@@ -214,11 +227,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   seek: (s) => {
     const { audio } = get();
-    if (!audio) return;
-    console.log("SEEK EVENT", s);
+    if (!audio || !isFinite(s)) return;
     try {
       audio.currentTime = s;
-    } catch {/* ignore */}
+      console.log("SEEK APPLIED", s);
+    } catch (e) {
+      console.warn("seek failed", e);
+    }
   },
 
   setExpanded: (v) => set({ expanded: v }),
