@@ -84,23 +84,18 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     audio.addEventListener("playing", () => set({ isLoading: false, isPlaying: true }));
     audio.addEventListener("stalled", () => set({ isLoading: true }));
     audio.addEventListener("ended", () => {
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      console.log("NEXT SONG TRIGGERED");
+      set({ isPlaying: false, position: 0 });
+      // Auto-advance — keep current track visible until next loads
+      get().next();
     });
     audio.addEventListener("error", () => {
+      // Ignore errors caused by intentional src reset (empty src)
+      if (!audio.src || audio.src === window.location.href) return;
       console.warn("audio element error", audio.error);
-      set({
-        current: null,
-        isLoading: false,
-        isPlaying: false,
-        position: 0,
-        duration: 0,
-      });
+      // Do NOT clear current track — keep mini player visible.
+      // Just mark as not playing so user can retry / skip.
+      set({ isLoading: false, isPlaying: false });
     });
 
     set({ audio });
