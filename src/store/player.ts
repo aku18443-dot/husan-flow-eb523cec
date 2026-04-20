@@ -126,10 +126,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   playTrack: async (track) => {
-    const { audio, preloader } = get();
+    console.log("CLICKED", track.videoId, track.title);
+    const { audio } = get();
     if (!audio) return;
 
-    // Bump request token to invalidate any in-flight stream resolution
+    // Invalidate any in-flight stream resolution / metadata fetch
     const token = get()._reqToken + 1;
     set({
       _reqToken: token,
@@ -140,117 +141,47 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       duration: 0,
     });
 
-    // STRICT: stop and clear previous source before anything else
+    // SINGLE INSTANCE: hard-stop previous playback completely
     try {
-      audio.pause();
+      if (!audio.paused) audio.pause();
+      audio.currentTime = 0;
       audio.removeAttribute("src");
       audio.load();
     } catch {/* ignore */}
 
-    // CRITICAL: prime the audio element SYNCHRONOUSLY inside the user-gesture stack.
-    // Browsers (especially mobile Safari/Chrome) require play() to be called from
-    // a user gesture. Calling play() AFTER an await getStream() loses that context
-    // and the browser silently blocks playback (NotAllowedError).
-    // Trick: call play() on an empty audio first to "unlock" it, then set src later.
-    try {
-      // muted + play() is always allowed and unlocks the element for future src changes
-      audio.muted = true;
-      const unlockPromise = audio.play();
-      if (unlockPromise && typeof unlockPromise.catch === "function") {
-        unlockPromise.catch(() => {/* ok, no src yet */});
-      }
-      audio.pause();
-      audio.muted = false;
-    } catch {/* ignore */}
+    // INSTANT PATH: skip the slow /streams resolver entirely.
+    // The /audio proxy resolves + streams bytes server-side in one round-trip.
+    // Browser starts playing as soon as first bytes arrive (~300-800ms).
+    const PROJECT_URL = "https://fsncpitxcehpttrrcgni.supabase.co";
+    const streamUrl = `${PROJECT_URL}/functions/v1/ytm?action=audio&id=${encodeURIComponent(track.videoId)}`;
 
-    const confirmPlayback = (expectedToken: number) =>
-      new Promise<void>((resolve, reject) => {
-        const cleanup = () => {
-          audio.removeEventListener("playing", onPlaying);
-          audio.removeEventListener("canplay", onCanPlay);
-          audio.removeEventListener("error", onError);
-        };
-
-        const onPlaying = () => {
-          if (get()._reqToken !== expectedToken) return;
-          console.log("PLAYING CONFIRMED", track.videoId, audio.currentSrc);
-          cleanup();
-          set({ isLoading: false, isPlaying: true });
-          resolve();
-        };
-
-        const onCanPlay = () => {
-          if (get()._reqToken !== expectedToken) return;
-          console.log("CAN PLAY", track.videoId, audio.currentSrc);
-          set({ isLoading: true });
-        };
-
-        const onError = () => {
-          if (get()._reqToken !== expectedToken) return;
-          console.log("PLAY ERROR", track.videoId, audio.error);
-          cleanup();
-          set({ isLoading: false, isPlaying: false });
-          reject(audio.error ?? new Error("audio error"));
-        };
-
-        audio.addEventListener("playing", onPlaying);
-        audio.addEventListener("canplay", onCanPlay);
-        audio.addEventListener("error", onError);
-      });
-
-    // Record only after we commit to playing this exact track
     recordPlay(track);
 
-    try {
-      let streamUrl: string | null = null;
-      const usePreloaded = preloader && preloader.dataset.id === track.videoId && preloader.src;
-
-      if (usePreloaded) {
-        streamUrl = preloader!.src;
-        preloader!.removeAttribute("src");
-        delete preloader!.dataset.id;
-        console.log("USING PRELOADED STREAM", track.videoId);
-      } else {
-        const stream = await getStream(track.videoId);
-        if (get()._reqToken !== token) return;
-        console.log("STREAM URL", track.videoId, stream.streamUrl);
-        streamUrl = stream.streamUrl;
-      }
-
-      if (!streamUrl) throw new Error("no stream url");
+    // Lightweight playing-event log (non-blocking)
+    const onPlaying = () => {
       if (get()._reqToken !== token) return;
+      console.log("PLAYING EVENT", track.videoId);
+      audio.removeEventListener("playing", onPlaying);
+    };
+    audio.addEventListener("playing", onPlaying);
 
-      // Listen for playing confirmation in the background — don't block on it.
-      confirmPlayback(token).catch((err) => {
-        console.warn("playback not confirmed", err);
+    audio.src = streamUrl;
+    audio.preload = "auto";
+    console.log("PLAY CALLED", track.videoId, streamUrl);
+    audio.play().catch((err) => {
+      if (err?.name !== "AbortError") console.warn("audio.play() rejected", err);
+    });
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title,
+        artist: track.artist,
+        artwork: [{ src: track.thumbnail, sizes: "480x360", type: "image/jpeg" }],
       });
-
-      audio.src = streamUrl;
-      audio.preload = "auto";
-      // Kick off play() IMMEDIATELY — browser will buffer + start as soon as bytes arrive.
-      // Don't await anything else first.
-      audio.play().catch((err) => {
-        // AbortError happens when user clicks another track quickly — that's fine.
-        if (err?.name !== "AbortError") {
-          console.warn("audio.play() rejected", err);
-        }
-      });
-
-      if ("mediaSession" in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: track.artist,
-          artwork: [{ src: track.thumbnail, sizes: "480x360", type: "image/jpeg" }],
-        });
-        navigator.mediaSession.setActionHandler("play", () => audio.play());
-        navigator.mediaSession.setActionHandler("pause", () => audio.pause());
-        navigator.mediaSession.setActionHandler("nexttrack", () => get().next());
-        navigator.mediaSession.setActionHandler("previoustrack", () => get().prev());
-      }
-    } catch (e) {
-      // Do NOT auto-skip. Surface the failure quietly; user controls navigation.
-      console.warn("play failed", e);
-      if (get()._reqToken === token) set({ isLoading: false, isPlaying: false });
+      navigator.mediaSession.setActionHandler("play", () => audio.play());
+      navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+      navigator.mediaSession.setActionHandler("nexttrack", () => get().next());
+      navigator.mediaSession.setActionHandler("previoustrack", () => get().prev());
     }
   },
 
@@ -278,6 +209,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     }
   },
 
-  seek: (s) => { const { audio } = get(); if (audio) audio.currentTime = s; },
+  seek: (s) => {
+    const { audio } = get();
+    if (!audio) return;
+    console.log("SEEK EVENT", s);
+    try { audio.currentTime = s; } catch {/* ignore */}
+  },
   setExpanded: (v) => set({ expanded: v }),
 }));
