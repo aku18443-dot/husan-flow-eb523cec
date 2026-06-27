@@ -25,6 +25,123 @@ type PlayerState = {
 
 const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL;
 
+declare global {
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let ytApiPromise: Promise<any> | null = null;
+let ytPlayerPromise: Promise<any> | null = null;
+let ytPlayer: any = null;
+let progressTimer: number | null = null;
+
+function stopProgressTimer() {
+  if (progressTimer !== null) {
+    window.clearInterval(progressTimer);
+    progressTimer = null;
+  }
+}
+
+function loadYouTubeApi(): Promise<any> {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (ytApiPromise) return ytApiPromise;
+
+  ytApiPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://www.youtube.com/iframe_api"]');
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      resolve(window.YT);
+    };
+
+    if (!existing) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      tag.onerror = () => reject(new Error("youtube api failed"));
+      document.head.appendChild(tag);
+    }
+  });
+
+  return ytApiPromise;
+}
+
+function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<PlayerState>) => void): Promise<any> {
+  if (ytPlayer) return Promise.resolve(ytPlayer);
+  if (ytPlayerPromise) return ytPlayerPromise;
+
+  ytPlayerPromise = loadYouTubeApi().then((YT) => new Promise((resolve) => {
+    let host = document.getElementById("husan-youtube-audio-host");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "husan-youtube-audio-host";
+      host.style.position = "fixed";
+      host.style.left = "-260px";
+      host.style.top = "-260px";
+      host.style.width = "220px";
+      host.style.height = "220px";
+      host.style.opacity = "0.01";
+      host.style.pointerEvents = "none";
+      host.style.zIndex = "-1";
+      document.body.appendChild(host);
+    }
+
+    ytPlayer = new YT.Player(host, {
+      width: 220,
+      height: 220,
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        playsinline: 1,
+        rel: 0,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: (event: any) => resolve(event.target),
+        onStateChange: (event: any) => {
+          const player = event.target;
+          const current = get().current;
+          if (event.data === 1) {
+            console.log("PLAYING EVENT", current?.videoId ?? "youtube");
+            console.log("PLAYING CONFIRMED");
+            set({ isPlaying: true, isLoading: false, duration: player.getDuration?.() || get().duration });
+            stopProgressTimer();
+            progressTimer = window.setInterval(() => {
+              const active = get().current;
+              if (!active || !ytPlayer || ytPlayer.getPlayerState?.() !== 1) return;
+              set({
+                position: ytPlayer.getCurrentTime?.() || 0,
+                duration: ytPlayer.getDuration?.() || get().duration,
+              });
+            }, 350);
+          } else if (event.data === 2) {
+            stopProgressTimer();
+            set({ isPlaying: false, isLoading: false });
+          } else if (event.data === 3) {
+            set({ isLoading: true });
+          } else if (event.data === 0) {
+            stopProgressTimer();
+            console.log("NEXT SONG TRIGGERED");
+            set({ isPlaying: false, isLoading: false, position: 0 });
+            get().next();
+          }
+        },
+        onError: (event: any) => {
+          console.warn("youtube player error", event.data);
+          stopProgressTimer();
+          set({ isPlaying: false, isLoading: false });
+          get().next();
+        },
+      },
+    });
+  }));
+
+  return ytPlayerPromise;
+}
+
 async function buildAutoQueue(seed: Track): Promise<Track[]> {
   const seen = new Set<string>([seed.videoId]);
   const out: Track[] = [];
@@ -73,6 +190,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     const audio = new Audio();
     audio.preload = "auto";
+    void ensureYouTubePlayer(get, set);
 
     audio.addEventListener("timeupdate", () => {
       set({ position: audio.currentTime, duration: audio.duration || 0 });
@@ -144,33 +262,54 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       audio.removeAttribute("src");
       audio.load();
     } catch {/* ignore */}
+    try {
+      ytPlayer?.stopVideo?.();
+    } catch {/* ignore */}
+    stopProgressTimer();
 
+    console.log("PLAY NEW SONG", track.videoId, track.title);
     console.log("PLAY START", track.videoId, streamUrl);
+
+    recordPlay(track);
+
+    try {
+      const player = await ensureYouTubePlayer(get, set);
+      if (get()._reqToken !== token) return;
+      player.loadVideoById({ videoId: track.videoId, startSeconds: 0 });
+      player.playVideo?.();
+      window.setTimeout(() => {
+        if (get()._reqToken !== token) return;
+        const state = player.getPlayerState?.();
+        if (state !== 1) set({ isLoading: state === 3 || state === -1 || state === 5 });
+      }, 1200);
+    } catch (err) {
+      console.warn("youtube fallback failed", err);
+    }
 
     const onPlaying = () => {
       if (get()._reqToken !== token) return;
       console.log("PLAYING EVENT", track.videoId);
       audio.removeEventListener("playing", onPlaying);
     };
-    audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("playing", onPlaying, { once: true });
 
-    audio.preload = "auto";
-    audio.src = streamUrl;
-
-    recordPlay(track);
-
-    try {
-      await audio.play();
-      if (get()._reqToken !== token) return;
-      set({ isPlaying: true, isLoading: false });
-    } catch (err: any) {
-      audio.removeEventListener("playing", onPlaying);
-      if (err?.name === "AbortError" || get()._reqToken !== token) return;
-      console.warn("audio.play() rejected", err);
-      // Keep current track set so mini player remains visible
-      set({ isLoading: false, isPlaying: false });
-      return;
-    }
+    // Keep the old HTML5 backend path as a silent backup only if YouTube cannot start.
+    window.setTimeout(async () => {
+      if (get()._reqToken !== token || get().isPlaying) return;
+      try {
+        audio.preload = "auto";
+        audio.src = streamUrl;
+        console.log("PLAY CALLED", track.videoId);
+        await audio.play();
+        if (get()._reqToken !== token) return;
+        set({ isPlaying: true, isLoading: false });
+      } catch (err: any) {
+        audio.removeEventListener("playing", onPlaying);
+        if (err?.name === "AbortError" || get()._reqToken !== token) return;
+        console.warn("audio.play() rejected", err);
+        set({ isLoading: false, isPlaying: false });
+      }
+    }, 2500);
 
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -188,6 +327,12 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   toggle: () => {
     const { audio, current } = get();
     if (!audio || !current) return;
+    if (ytPlayer) {
+      const state = ytPlayer.getPlayerState?.();
+      if (state === 1) ytPlayer.pauseVideo?.();
+      else ytPlayer.playVideo?.();
+      return;
+    }
     if (audio.paused) audio.play().catch(() => {/* ignore */});
     else audio.pause();
   },
@@ -215,6 +360,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   prev: () => {
     const { queue, index, audio } = get();
+    if (ytPlayer && (ytPlayer.getCurrentTime?.() || 0) > 4) {
+      ytPlayer.seekTo?.(0, true);
+      set({ position: 0 });
+      return;
+    }
     if (audio && audio.currentTime > 4) {
       audio.currentTime = 0;
       return;
@@ -229,7 +379,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const { audio } = get();
     if (!audio || !isFinite(s)) return;
     try {
-      audio.currentTime = s;
+      if (ytPlayer) ytPlayer.seekTo?.(s, true);
+      else audio.currentTime = s;
+      set({ position: s, isLoading: false });
       console.log("SEEK APPLIED", s);
     } catch (e) {
       console.warn("seek failed", e);
