@@ -15,7 +15,7 @@ export type StreamData = Track & {
   related: Track[];
 };
 
-const PROJECT_URL = "https://fsncpitxcehpttrrcgni.supabase.co";
+const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL;
 const FN = `${PROJECT_URL}/functions/v1/ytm`;
 
 // In-memory cache for current session
