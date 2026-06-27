@@ -36,6 +36,7 @@ let ytApiPromise: Promise<any> | null = null;
 let ytPlayerPromise: Promise<any> | null = null;
 let ytPlayer: any = null;
 let progressTimer: number | null = null;
+let suppressEndedUntil = 0;
 
 function stopProgressTimer() {
   if (progressTimer !== null) {
@@ -100,7 +101,11 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
         origin: window.location.origin,
       },
       events: {
-        onReady: (event: any) => resolve(event.target),
+        onReady: (event: any) => {
+          const iframe = document.querySelector<HTMLIFrameElement>("#husan-youtube-audio-host iframe");
+          iframe?.setAttribute("allow", "autoplay; encrypted-media");
+          resolve(event.target);
+        },
         onStateChange: (event: any) => {
           const player = event.target;
           const current = get().current;
@@ -124,6 +129,7 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
             set({ isLoading: true });
           } else if (event.data === 0) {
             stopProgressTimer();
+            if (Date.now() < suppressEndedUntil) return;
             console.log("NEXT SONG TRIGGERED");
             set({ isPlaying: false, isLoading: false, position: 0 });
             get().next();
@@ -263,6 +269,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       audio.load();
     } catch {/* ignore */}
     try {
+      suppressEndedUntil = Date.now() + 1500;
       ytPlayer?.stopVideo?.();
     } catch {/* ignore */}
     stopProgressTimer();
