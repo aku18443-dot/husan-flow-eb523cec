@@ -410,16 +410,17 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Try top candidate first (fast path). If null, try next sequentially.
-      // Keep it simple — racing audio fetches wastes upstream bandwidth.
-      for (const candidate of resolved.candidates.slice(0, 4)) {
-        const proxied = await fetchUpstreamAudio(candidate, req);
-        if (proxied) return proxied;
-      }
-
-      return new Response(JSON.stringify({ error: "audio proxy failed" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      // Redirect client directly to the upstream audio URL.
+      // googlevideo's CDN supports CORS + Range requests, and avoids edge IP issues
+      // that cause server-side fetches to 403.
+      const top = resolved.candidates[0];
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...corsHeaders,
+          Location: top.url,
+          "Cache-Control": "no-store",
+        },
       });
     } else if (action === "channel") {
       const q = url.searchParams.get("q") ?? "";
