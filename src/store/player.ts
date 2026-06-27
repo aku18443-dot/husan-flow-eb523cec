@@ -23,7 +23,7 @@ type PlayerState = {
   setExpanded: (v: boolean) => void;
 };
 
-const PROJECT_URL = "https://fsncpitxcehpttrrcgni.supabase.co";
+const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL;
 
 async function buildAutoQueue(seed: Track): Promise<Track[]> {
   const seen = new Set<string>([seed.videoId]);
