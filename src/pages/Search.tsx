@@ -76,10 +76,11 @@ const SearchPage = () => {
     inputRef.current?.blur();
   };
 
-  const playTrack = (track: Track, list: Track[]) => {
+  const playTrack = (track: Track, _list: Track[]) => {
     commit(q.trim());
-    const idx = Math.max(0, list.findIndex((t) => t.videoId === track.videoId));
-    playQueue(list, idx);
+    // Play just this track — store will auto-build a related/random queue
+    // so "Next" gives variety instead of cycling search results.
+    playQueue([track], 0);
   };
 
   return (

@@ -8,8 +8,6 @@ import {
 } from "@/lib/api";
 import { TrackCard, TrackRow } from "@/components/TrackCard";
 import { SearchBar } from "@/components/SearchBar";
-import { MiniPlayer } from "@/components/MiniPlayer";
-import { FullPlayer } from "@/components/FullPlayer";
 import { ArtistAvatar } from "@/components/ArtistAvatar";
 import { CardShimmerRow } from "@/components/Shimmer";
 import { PlaylistsSection } from "@/components/PlaylistsSection";
@@ -222,9 +220,6 @@ const Index = () => {
           </p>
         </section>
       </main>
-
-      <MiniPlayer />
-      <FullPlayer />
     </div>
   );
 };
