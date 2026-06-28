@@ -38,6 +38,12 @@ let ytPlayer: any = null;
 let progressTimer: number | null = null;
 let suppressEndedUntil = 0;
 
+const isRealYouTubePlayer = (player: any) =>
+  !!player &&
+  typeof player.loadVideoById === "function" &&
+  typeof player.playVideo === "function" &&
+  typeof player.getPlayerState === "function";
+
 function stopProgressTimer() {
   if (progressTimer !== null) {
     window.clearInterval(progressTimer);
@@ -63,6 +69,13 @@ function loadYouTubeApi(): Promise<any> {
       tag.async = true;
       tag.onerror = () => reject(new Error("youtube api failed"));
       document.head.appendChild(tag);
+    } else {
+      const poll = window.setInterval(() => {
+        if (window.YT?.Player) {
+          window.clearInterval(poll);
+          resolve(window.YT);
+        }
+      }, 50);
     }
   });
 
@@ -70,10 +83,11 @@ function loadYouTubeApi(): Promise<any> {
 }
 
 function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<PlayerState>) => void): Promise<any> {
-  if (ytPlayer) return Promise.resolve(ytPlayer);
+  if (isRealYouTubePlayer(ytPlayer)) return Promise.resolve(ytPlayer);
+  ytPlayer = null;
   if (ytPlayerPromise) return ytPlayerPromise;
 
-  ytPlayerPromise = loadYouTubeApi().then((YT) => new Promise((resolve) => {
+  ytPlayerPromise = loadYouTubeApi().then((YT) => new Promise((resolve, reject) => {
     let host = document.getElementById("husan-youtube-audio-host");
     if (!host) {
       host = document.createElement("div");
@@ -89,25 +103,33 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
       document.body.appendChild(host);
     }
 
-    ytPlayer = new YT.Player(host, {
+    const readyTimeout = window.setTimeout(() => {
+      ytPlayerPromise = null;
+      reject(new Error("youtube player ready timeout"));
+    }, 6000);
+
+    const playerInstance = new YT.Player("husan-youtube-audio-host", {
       width: 220,
       height: 220,
       playerVars: {
-        autoplay: 0,
+        autoplay: 1,
         controls: 0,
         disablekb: 1,
+        enablejsapi: 1,
         playsinline: 1,
         rel: 0,
         origin: window.location.origin,
       },
       events: {
-        onReady: (event: any) => {
-          const iframe = document.querySelector<HTMLIFrameElement>("#husan-youtube-audio-host iframe");
+        onReady: () => {
+          window.clearTimeout(readyTimeout);
+          const iframe = document.getElementById("husan-youtube-audio-host") as HTMLIFrameElement | null;
           iframe?.setAttribute("allow", "autoplay; encrypted-media");
-          resolve(event.target);
+          ytPlayer = playerInstance;
+          resolve(playerInstance);
         },
         onStateChange: (event: any) => {
-          const player = event.target;
+          const player = isRealYouTubePlayer(event.target) ? event.target : ytPlayer;
           const current = get().current;
           if (event.data === 1) {
             console.log("PLAYING EVENT", current?.videoId ?? "youtube");
@@ -143,6 +165,7 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
         },
       },
     });
+    ytPlayer = playerInstance;
   }));
 
   return ytPlayerPromise;
@@ -282,8 +305,10 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     try {
       const player = await ensureYouTubePlayer(get, set);
       if (get()._reqToken !== token) return;
+      if (!isRealYouTubePlayer(player)) throw new Error("youtube player api unavailable");
       player.loadVideoById({ videoId: track.videoId, startSeconds: 0 });
       player.playVideo?.();
+      console.log("PLAY CALLED", track.videoId);
       window.setTimeout(() => {
         if (get()._reqToken !== token) return;
         const state = player.getPlayerState?.();
@@ -300,10 +325,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     };
     audio.addEventListener("playing", onPlaying, { once: true });
 
-    // Keep the old HTML5 backend path as a silent backup only if YouTube cannot start.
+    // Keep the old HTML5 backend path as a delayed backup only if YouTube cannot start.
     window.setTimeout(async () => {
       if (get()._reqToken !== token || get().isPlaying) return;
       try {
+        ytPlayer?.stopVideo?.();
         audio.preload = "auto";
         audio.src = streamUrl;
         console.log("PLAY CALLED", track.videoId);
@@ -324,8 +350,16 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         artist: track.artist,
         artwork: [{ src: track.thumbnail, sizes: "480x360", type: "image/jpeg" }],
       });
-      navigator.mediaSession.setActionHandler("play", () => audio.play());
-      navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+      navigator.mediaSession.setActionHandler("play", () => {
+        if (ytPlayer) ytPlayer.playVideo?.();
+        else void audio.play();
+        set({ isPlaying: true, isLoading: false });
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (ytPlayer) ytPlayer.pauseVideo?.();
+        else audio.pause();
+        set({ isPlaying: false, isLoading: false });
+      });
       navigator.mediaSession.setActionHandler("nexttrack", () => get().next());
       navigator.mediaSession.setActionHandler("previoustrack", () => get().prev());
     }
