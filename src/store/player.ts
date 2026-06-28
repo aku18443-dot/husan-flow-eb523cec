@@ -332,16 +332,17 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   toggle: () => {
-    const { audio, current } = get();
-    if (!audio || !current) return;
+    const { audio, current, isPlaying } = get();
+    if (!current) return;
     if (ytPlayer) {
       const state = ytPlayer.getPlayerState?.();
-      if (state === 1) ytPlayer.pauseVideo?.();
-      else ytPlayer.playVideo?.();
+      if (state === 1) { ytPlayer.pauseVideo?.(); set({ isPlaying: false }); }
+      else { ytPlayer.playVideo?.(); set({ isPlaying: true }); }
       return;
     }
-    if (audio.paused) audio.play().catch(() => {/* ignore */});
-    else audio.pause();
+    if (!audio) return;
+    if (audio.paused) { audio.play().catch(() => {/* ignore */}); set({ isPlaying: true }); }
+    else { audio.pause(); set({ isPlaying: false }); }
   },
 
   next: () => {
