@@ -5,8 +5,6 @@ import { ALL_INDIAN_ARTISTS } from "@/lib/artists";
 import { Track, getArtistSongs } from "@/lib/api";
 import { ArtistAvatar } from "@/components/ArtistAvatar";
 import { TrackRow } from "@/components/TrackCard";
-import { MiniPlayer } from "@/components/MiniPlayer";
-import { FullPlayer } from "@/components/FullPlayer";
 import { usePlayer } from "@/store/player";
 
 const PAGE_SIZE = 18;
@@ -162,9 +160,6 @@ const ArtistsPage = () => {
       <main className="mx-auto max-w-3xl px-4 py-4">
         {decoded ? <ArtistDetail name={decoded} /> : <ArtistGrid />}
       </main>
-
-      <MiniPlayer />
-      <FullPlayer />
     </div>
   );
 };
