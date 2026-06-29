@@ -37,6 +37,7 @@ let ytPlayerPromise: Promise<any> | null = null;
 let ytPlayer: any = null;
 let progressTimer: number | null = null;
 let suppressEndedUntil = 0;
+let ytPlayConfirmTimer: number | null = null;
 
 const isRealYouTubePlayer = (player: any) =>
   !!player &&
@@ -48,6 +49,13 @@ function stopProgressTimer() {
   if (progressTimer !== null) {
     window.clearInterval(progressTimer);
     progressTimer = null;
+  }
+}
+
+function stopPlayConfirmTimer() {
+  if (ytPlayConfirmTimer !== null) {
+    window.clearInterval(ytPlayConfirmTimer);
+    ytPlayConfirmTimer = null;
   }
 }
 
@@ -132,6 +140,7 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
           const player = isRealYouTubePlayer(event.target) ? event.target : ytPlayer;
           const current = get().current;
           if (event.data === 1) {
+            stopPlayConfirmTimer();
             console.log("PLAYING EVENT", current?.videoId ?? "youtube");
             console.log("PLAYING CONFIRMED");
             set({ isPlaying: true, isLoading: false, duration: player.getDuration?.() || get().duration });
@@ -159,6 +168,7 @@ function ensureYouTubePlayer(get: () => PlayerState, set: (partial: Partial<Play
         },
         onError: (event: any) => {
           console.warn("youtube player error", event.data);
+          stopPlayConfirmTimer();
           stopProgressTimer();
           set({ isPlaying: false, isLoading: false });
           get().next();
@@ -296,6 +306,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       ytPlayer?.stopVideo?.();
     } catch {/* ignore */}
     stopProgressTimer();
+    stopPlayConfirmTimer();
 
     console.log("PLAY NEW SONG", track.videoId, track.title);
     console.log("PLAY START", track.videoId, streamUrl);
@@ -309,40 +320,31 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       player.loadVideoById({ videoId: track.videoId, startSeconds: 0 });
       player.playVideo?.();
       console.log("PLAY CALLED", track.videoId);
-      window.setTimeout(() => {
+
+      const startedAt = Date.now();
+      ytPlayConfirmTimer = window.setInterval(() => {
         if (get()._reqToken !== token) return;
         const state = player.getPlayerState?.();
-        if (state !== 1) set({ isLoading: state === 3 || state === -1 || state === 5 });
-      }, 1200);
+        if (state === 1) {
+          stopPlayConfirmTimer();
+          console.log("PLAYING EVENT", track.videoId);
+          console.log("PLAYING CONFIRMED");
+          set({ isPlaying: true, isLoading: false, duration: player.getDuration?.() || get().duration });
+          return;
+        }
+        if (Date.now() - startedAt > 900) {
+          player.playVideo?.();
+          set({ isLoading: state === 3 || state === -1 || state === 5 });
+        }
+        if (Date.now() - startedAt > 8000) {
+          stopPlayConfirmTimer();
+          set({ isLoading: false, isPlaying: false });
+        }
+      }, 300);
     } catch (err) {
       console.warn("youtube fallback failed", err);
+      set({ isLoading: false, isPlaying: false });
     }
-
-    const onPlaying = () => {
-      if (get()._reqToken !== token) return;
-      console.log("PLAYING EVENT", track.videoId);
-      audio.removeEventListener("playing", onPlaying);
-    };
-    audio.addEventListener("playing", onPlaying, { once: true });
-
-    // Keep the old HTML5 backend path as a delayed backup only if YouTube cannot start.
-    window.setTimeout(async () => {
-      if (get()._reqToken !== token || get().isPlaying) return;
-      try {
-        ytPlayer?.stopVideo?.();
-        audio.preload = "auto";
-        audio.src = streamUrl;
-        console.log("PLAY CALLED", track.videoId);
-        await audio.play();
-        if (get()._reqToken !== token) return;
-        set({ isPlaying: true, isLoading: false });
-      } catch (err: any) {
-        audio.removeEventListener("playing", onPlaying);
-        if (err?.name === "AbortError" || get()._reqToken !== token) return;
-        console.warn("audio.play() rejected", err);
-        set({ isLoading: false, isPlaying: false });
-      }
-    }, 2500);
 
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
