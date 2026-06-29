@@ -84,8 +84,23 @@ async function call<T>(params: Record<string, string>, options: CallOptions = {}
 
 export async function searchTracks(q: string): Promise<Track[]> {
   if (!q.trim()) return [];
-  const data = await call<{ items: Track[] }>({ action: "search", q, filter: "music_songs" });
-  return data.items ?? [];
+  // Search BOTH music_songs (curated) AND videos (broader YouTube) in parallel, then merge.
+  const [music, videos] = await Promise.allSettled([
+    call<{ items: Track[] }>({ action: "search", q, filter: "music_songs" }),
+    call<{ items: Track[] }>({ action: "search", q, filter: "videos" }),
+  ]);
+  const merged: Track[] = [];
+  const seen = new Set<string>();
+  const push = (items: Track[] = []) => {
+    for (const t of items) {
+      if (!t?.videoId || seen.has(t.videoId)) continue;
+      seen.add(t.videoId);
+      merged.push(t);
+    }
+  };
+  if (music.status === "fulfilled") push(music.value.items);
+  if (videos.status === "fulfilled") push(videos.value.items);
+  return merged;
 }
 
 export async function getStream(id: string, options: { fresh?: boolean } = {}): Promise<StreamData> {
