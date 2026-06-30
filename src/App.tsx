@@ -18,10 +18,11 @@ const queryClient = new QueryClient();
 
 const Shell = () => {
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-black text-foreground">
-      <div className="flex min-h-0 flex-1 gap-0 p-2 pb-0">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-page text-foreground">
+      <div className="flex min-h-0 flex-1 gap-2 p-2 pb-0">
         <LeftSidebar />
-        <main className="relative min-w-0 flex-1 overflow-hidden rounded-lg bg-gradient-hero">
+        <main className="relative min-w-0 flex-1 overflow-hidden rounded-2xl bg-gradient-hero shadow-card ring-1 ring-white/5">
+
           <div className="scrollbar-hide h-full overflow-y-auto">
             <Routes>
               <Route path="/" element={<Index />} />
