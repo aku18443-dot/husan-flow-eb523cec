@@ -30,7 +30,7 @@ export const BottomPlayerBar = () => {
 
   if (!current) {
     return (
-      <div className="h-[88px] shrink-0 bg-background px-4 flex items-center justify-center text-xs text-muted-foreground">
+      <div className="h-[88px] shrink-0 bg-transparent px-4 flex items-center justify-center text-xs text-muted-foreground">
         Pick a song to start playing
       </div>
     );
@@ -39,7 +39,8 @@ export const BottomPlayerBar = () => {
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
-    <div className="h-[88px] shrink-0 bg-background px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+    <div className="mx-2 my-2 h-[80px] shrink-0 rounded-2xl bg-card/70 backdrop-blur-xl ring-1 ring-white/10 shadow-card px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+
       {/* Left: Track info */}
       <div className="flex min-w-0 items-center gap-3">
         <button
