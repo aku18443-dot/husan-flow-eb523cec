@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,55 +6,60 @@
 
 @layer base {
   :root {
-    /* Premium pink theme — deep rose backdrop, hot magenta accent */
-    --background: 335 55% 8%;
-    --foreground: 340 20% 98%;
+    /* NEON CYBER PINK — hot pink + electric cyan on deep violet-black */
+    --background: 280 60% 4%;
+    --foreground: 320 40% 98%;
 
-    --card: 335 40% 12%;
-    --card-foreground: 340 20% 98%;
+    --card: 285 55% 8%;
+    --card-foreground: 320 40% 98%;
 
-    --popover: 335 50% 10%;
-    --popover-foreground: 340 20% 98%;
+    --popover: 285 60% 6%;
+    --popover-foreground: 320 40% 98%;
 
-    --primary: 330 100% 62%;            /* hot pink */
+    --primary: 328 100% 58%;            /* hot magenta pink */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 320 100% 75%;
+    --primary-glow: 320 100% 72%;
 
-    --secondary: 335 30% 18%;
-    --secondary-foreground: 340 20% 98%;
+    --secondary: 285 40% 14%;
+    --secondary-foreground: 320 40% 98%;
 
-    --muted: 335 25% 16%;
-    --muted-foreground: 335 15% 70%;
+    --muted: 285 30% 12%;
+    --muted-foreground: 300 20% 72%;
 
-    --accent: 290 90% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 100% 55%;             /* electric cyan */
+    --accent-foreground: 285 60% 6%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 335 35% 22%;
-    --input: 335 30% 18%;
-    --ring: 330 100% 62%;
+    --border: 320 60% 24%;
+    --input: 285 35% 14%;
+    --ring: 328 100% 58%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
 
-    /* Pink ambient — used as main card background */
-    --gradient-hero: radial-gradient(ellipse 80% 60% at 10% 0%, hsl(330 90% 35% / 0.85), transparent 60%),
-                     radial-gradient(ellipse 70% 50% at 90% 10%, hsl(290 80% 35% / 0.6), transparent 55%),
-                     linear-gradient(180deg, hsl(335 60% 14%) 0%, hsl(335 65% 7%) 60%, hsl(335 70% 5%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(335 40% 16% / 0.9), hsl(335 50% 10% / 0.92));
-    --gradient-accent: linear-gradient(135deg, hsl(330 100% 62%), hsl(290 90% 65%));
-    --gradient-glass: linear-gradient(135deg, hsl(330 100% 80% / 0.10), hsl(290 100% 80% / 0.04));
-    --gradient-animated: linear-gradient(120deg, hsl(330 100% 62%), hsl(290 90% 65%), hsl(260 80% 60%), hsl(330 100% 62%));
+    /* Neon accents */
+    --neon-pink: 328 100% 58%;
+    --neon-cyan: 190 100% 55%;
+    --neon-purple: 275 90% 60%;
 
-    /* Page-level body gradient (visible around the rounded card) */
-    --gradient-page: radial-gradient(circle at 0% 0%, hsl(330 70% 18%), transparent 50%),
-                     radial-gradient(circle at 100% 100%, hsl(290 60% 14%), transparent 55%),
-                     hsl(335 70% 5%);
+    --gradient-hero: radial-gradient(ellipse 90% 60% at 15% 0%, hsl(328 100% 45% / 0.55), transparent 60%),
+                     radial-gradient(ellipse 70% 55% at 100% 20%, hsl(190 100% 45% / 0.32), transparent 55%),
+                     radial-gradient(ellipse 60% 40% at 85% 100%, hsl(275 90% 45% / 0.42), transparent 60%),
+                     linear-gradient(180deg, hsl(285 60% 8%) 0%, hsl(285 70% 4%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(285 55% 12% / 0.85), hsl(285 65% 6% / 0.92));
+    --gradient-accent: linear-gradient(135deg, hsl(328 100% 58%), hsl(275 90% 60%) 55%, hsl(190 100% 55%));
+    --gradient-glass: linear-gradient(135deg, hsl(328 100% 80% / 0.10), hsl(190 100% 80% / 0.04));
+    --gradient-animated: linear-gradient(120deg, hsl(328 100% 58%), hsl(275 90% 60%), hsl(190 100% 55%), hsl(328 100% 58%));
 
-    --shadow-glow: 0 10px 60px -10px hsl(330 100% 62% / 0.6);
-    --shadow-neon: 0 0 28px hsl(330 100% 62% / 0.5), 0 0 70px hsl(290 100% 65% / 0.3);
-    --shadow-card: 0 12px 40px -12px hsl(335 80% 3% / 0.8);
+    --gradient-page: radial-gradient(circle at 0% 0%, hsl(328 90% 14%), transparent 55%),
+                     radial-gradient(circle at 100% 100%, hsl(190 90% 12%), transparent 55%),
+                     radial-gradient(circle at 50% 60%, hsl(275 80% 10%), transparent 55%),
+                     hsl(285 70% 3%);
+
+    --shadow-glow: 0 10px 60px -10px hsl(328 100% 58% / 0.7);
+    --shadow-neon: 0 0 24px hsl(328 100% 58% / 0.55), 0 0 60px hsl(190 100% 55% / 0.28);
+    --shadow-card: 0 20px 60px -20px hsl(285 90% 2% / 0.9);
 
     --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -71,10 +76,11 @@
     letter-spacing: -0.01em;
   }
   h1, h2, h3, .font-display {
-    font-family: 'Unbounded', sans-serif;
+    font-family: 'Syne', sans-serif;
     letter-spacing: -0.03em;
     font-weight: 800;
   }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
 }
 
 @layer components {
@@ -82,7 +88,17 @@
     background: var(--gradient-glass);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid hsl(330 100% 80% / 0.12);
+    border: 1px solid hsl(328 100% 80% / 0.14);
+  }
+  .neon-card {
+    background: var(--gradient-card);
+    border: 1px solid hsl(328 100% 60% / 0.18);
+    box-shadow: 0 8px 32px -12px hsl(328 100% 40% / 0.4), inset 0 1px 0 hsl(328 100% 80% / 0.08);
+    backdrop-filter: blur(14px);
+  }
+  .neon-card:hover {
+    border-color: hsl(328 100% 60% / 0.45);
+    box-shadow: 0 12px 40px -10px hsl(328 100% 50% / 0.55), inset 0 1px 0 hsl(190 100% 80% / 0.12);
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -95,11 +111,37 @@
   .bg-gradient-animated {
     background: var(--gradient-animated);
     background-size: 300% 300%;
-    animation: gradient-shift 12s ease infinite;
+    animation: gradient-shift 8s ease infinite;
   }
+  .text-neon-pink { color: hsl(var(--neon-pink)); text-shadow: 0 0 12px hsl(var(--neon-pink) / 0.7); }
+  .text-neon-cyan { color: hsl(var(--neon-cyan)); text-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.7); }
   .shadow-neon { box-shadow: var(--shadow-neon); }
-  .neon-ring { box-shadow: 0 0 0 1px hsl(330 100% 62% / 0.4), 0 0 24px hsl(330 100% 62% / 0.35); }
+  .neon-ring { box-shadow: 0 0 0 1px hsl(328 100% 60% / 0.5), 0 0 28px hsl(328 100% 58% / 0.45); }
   .bg-page { background: var(--gradient-page); }
+  .bg-gradient-hero { background: var(--gradient-hero); }
+  .bg-gradient-accent { background: var(--gradient-accent); }
+  .bg-gradient-card { background: var(--gradient-card); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+
+  /* Neon border animation */
+  .neon-border {
+    position: relative;
+  }
+  .neon-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-animated);
+    background-size: 300% 300%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    animation: gradient-shift 6s linear infinite;
+    pointer-events: none;
+  }
 }
 
 @keyframes float-up {
@@ -108,11 +150,7 @@
 }
 @keyframes pulse-glow {
   0%,100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.8); }
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  50% { box-shadow: 0 0 60px hsl(var(--primary) / 0.9), 0 0 90px hsl(var(--accent) / 0.4); }
 }
 @keyframes spin-slow { to { transform: rotate(360deg); } }
 @keyframes marquee {
@@ -123,47 +161,60 @@
   0%,100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
+@keyframes blob-drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(4%, -6%) scale(1.15); }
+  66% { transform: translate(-5%, 5%) scale(0.92); }
+}
+@keyframes neon-flicker {
+  0%,100% { opacity: 1; }
+  47% { opacity: 0.85; }
+  49% { opacity: 1; }
+  51% { opacity: 0.9; }
+}
+@keyframes bar-eq {
+  0%,100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
 
 .animate-float-up { animation: float-up 0.6s var(--transition-smooth) both; }
 .animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 8s linear infinite; }
 .animate-marquee { display: inline-block; animation: marquee 9s ease-in-out infinite; }
+.animate-blob { animation: blob-drift 18s ease-in-out infinite; }
+.animate-neon-flicker { animation: neon-flicker 4s infinite; }
 
-/* Spotify-style progress slider */
+/* Neon progress slider */
 .player-progress {
   appearance: none;
   -webkit-appearance: none;
   height: 4px;
   border-radius: 999px;
-  background-color: hsl(0 0% 30%);
-  background-image: linear-gradient(hsl(0 0% 100%), hsl(0 0% 100%));
+  background-color: hsl(285 30% 22%);
+  background-image: var(--gradient-accent);
   background-repeat: no-repeat;
   background-size: 0% 100%;
   cursor: pointer;
   outline: none;
   transition: height 0.15s ease;
 }
-.player-progress:hover {
-  background-image: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
-}
+.player-progress:hover { height: 6px; }
 .player-progress::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  height: 12px;
-  width: 12px;
+  height: 14px;
+  width: 14px;
   border-radius: 50%;
   background: hsl(0 0% 100%);
+  box-shadow: 0 0 8px hsl(var(--primary));
   opacity: 0;
   transition: opacity 0.15s ease;
   border: none;
 }
 .player-progress:hover::-webkit-slider-thumb { opacity: 1; }
 .player-progress::-moz-range-thumb {
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: hsl(0 0% 100%);
-  border: none;
-  opacity: 0;
+  height: 14px; width: 14px; border-radius: 50%;
+  background: hsl(0 0% 100%); border: none; opacity: 0;
+  box-shadow: 0 0 8px hsl(var(--primary));
 }
 .player-progress:hover::-moz-range-thumb { opacity: 1; }
