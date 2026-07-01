@@ -17,7 +17,7 @@ import { getRecent, getMostPlayed, getTopArtists } from "@/lib/history";
 import { Loader2, Play, Send, Radio, Flame, Sparkles } from "lucide-react";
 import husanLogo from "@/assets/husan-logo.png";
 
-const Row = ({ title, tracks, loading }: { title: string; tracks: Track[]; loading?: boolean }) => (
+const Row = ({ title, tracks, loading }: { title: React.ReactNode; tracks: Track[]; loading?: boolean }) => (
   <section className="space-y-3">
     <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
     {loading && tracks.length === 0 ? (
@@ -31,6 +31,7 @@ const Row = ({ title, tracks, loading }: { title: string; tracks: Track[]; loadi
     )}
   </section>
 );
+
 
 const Index = () => {
   const init = usePlayer((s) => s.init);
@@ -168,16 +169,17 @@ const Index = () => {
         {recent.length > 0 && <Row title="⏱ Recently Played" tracks={recent} />}
         {mostPlayed.length > 0 && (
           <Row
-            title={<span className="inline-flex items-center gap-2"><Flame className="h-5 w-5 text-neon-pink" /> Most Played</span> as unknown as string}
+            title={<span className="inline-flex items-center gap-2"><Flame className="h-5 w-5 text-neon-pink" /> Most Played</span>}
             tracks={mostPlayed}
           />
         )}
         {recommended.length > 0 && (
           <Row
-            title={<span className="inline-flex items-center gap-2"><Sparkles className="h-5 w-5 text-neon-cyan" /> Recommended For You</span> as unknown as string}
+            title={<span className="inline-flex items-center gap-2"><Sparkles className="h-5 w-5 text-neon-cyan" /> Recommended For You</span>}
             tracks={recommended}
           />
         )}
+
 
         <Row title="✨ Discover Bollywood" tracks={discover} loading={loadingDiscover} />
         <Row title="🆕 New Releases" tracks={newRel} loading={loadingNew} />
