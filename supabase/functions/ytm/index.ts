@@ -329,10 +329,60 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get("action") ?? "search";
+    let bodyJson: any = null;
+    if (req.method === "POST") {
+      try { bodyJson = await req.json(); } catch { /* noop */ }
+    }
+    const action = url.searchParams.get("action") ?? bodyJson?.action ?? "search";
     const supaUrl = Deno.env.get("SUPABASE_URL") ?? "https://fsncpitxcehpttrrcgni.supabase.co";
     const publicBase = `${supaUrl.replace(/\/$/, "")}/functions/v1/ytm`;
     let data: any;
+
+    if (action === "mood") {
+      const mood = (url.searchParams.get("mood") ?? bodyJson?.mood ?? "").toString().trim();
+      if (!mood) {
+        return new Response(JSON.stringify({ query: "" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const apiKey = Deno.env.get("LOVABLE_API_KEY");
+      let query = `${mood} bollywood hindi songs`;
+      if (apiKey) {
+        try {
+          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Lovable-API-Key": apiKey,
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You convert a listener's mood/vibe into ONE short YouTube Music search query (max 8 words) that will return matching Bollywood/Hindi songs. Prefer real artist names when the mood implies it. Respond with ONLY the query text, no quotes, no extra words.",
+                },
+                { role: "user", content: mood },
+              ],
+              temperature: 0.7,
+              max_tokens: 40,
+            }),
+          });
+          if (aiRes.ok) {
+            const j = await aiRes.json();
+            const out = j?.choices?.[0]?.message?.content?.toString().trim();
+            if (out) query = out.replace(/^["']|["']$/g, "").slice(0, 120);
+          }
+        } catch (e) {
+          console.error("mood ai error", e);
+        }
+      }
+      return new Response(JSON.stringify({ query }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     if (action === "search") {
       const q = url.searchParams.get("q") ?? "";
