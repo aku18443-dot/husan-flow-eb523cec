@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SearchPage from "./pages/Search.tsx";
 import ArtistsPage from "./pages/Artists.tsx";
+import LibraryPage from "./pages/Library.tsx";
 import { FullPlayer } from "./components/FullPlayer";
 import { LeftSidebar } from "./components/LeftSidebar";
 import { BottomPlayerBar } from "./components/BottomPlayerBar";
