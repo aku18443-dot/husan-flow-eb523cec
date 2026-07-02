@@ -2,6 +2,7 @@ import { usePlayer } from "@/store/player";
 import { Pause, Play, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Loader2, Maximize2, Heart, Mic2, ListMusic, Volume1, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SleepTimer } from "./SleepTimer";
+import { isLiked, toggleLike, subscribeLibrary } from "@/lib/history";
 
 const fmt = (s: number) => {
   if (!isFinite(s) || s < 0) return "0:00";
@@ -23,11 +24,19 @@ export const BottomPlayerBar = () => {
   const setExpanded = usePlayer((s) => s.setExpanded);
 
   const [volume, setVolume] = useState(0.8);
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     const audio = (window as unknown as { __husanAudio?: HTMLAudioElement }).__husanAudio;
     if (audio) audio.volume = volume;
   }, [volume]);
+
+  useEffect(() => {
+    setLiked(current ? isLiked(current.videoId) : false);
+    return subscribeLibrary(() => {
+      setLiked(current ? isLiked(current.videoId) : false);
+    });
+  }, [current]);
 
   if (!current) {
     return (
@@ -65,8 +74,13 @@ export const BottomPlayerBar = () => {
           <p className="truncate text-sm font-semibold hover:underline cursor-pointer">{current.title}</p>
           <p className="truncate text-xs text-muted-foreground hover:underline cursor-pointer">{current.artist}</p>
         </div>
-        <button className="ml-2 text-muted-foreground hover:text-primary" aria-label="Like">
-          <Heart className="h-4 w-4" />
+        <button
+          onClick={() => current && toggleLike(current)}
+          className={`ml-2 transition-colors ${liked ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+          aria-label={liked ? "Unlike" : "Like"}
+          title={liked ? "Remove from Liked Songs" : "Save to Liked Songs"}
+        >
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
         </button>
       </div>
 
