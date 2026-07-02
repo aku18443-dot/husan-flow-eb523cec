@@ -74,8 +74,13 @@ export const BottomPlayerBar = () => {
           <p className="truncate text-sm font-semibold hover:underline cursor-pointer">{current.title}</p>
           <p className="truncate text-xs text-muted-foreground hover:underline cursor-pointer">{current.artist}</p>
         </div>
-        <button className="ml-2 text-muted-foreground hover:text-primary" aria-label="Like">
-          <Heart className="h-4 w-4" />
+        <button
+          onClick={() => current && toggleLike(current)}
+          className={`ml-2 transition-colors ${liked ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+          aria-label={liked ? "Unlike" : "Like"}
+          title={liked ? "Remove from Liked Songs" : "Save to Liked Songs"}
+        >
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
         </button>
       </div>
 
