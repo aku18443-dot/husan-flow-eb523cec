@@ -257,6 +257,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
 
     set({ audio });
+
+    // Keep audio alive when app is backgrounded / screen off (best-effort).
+    installBackgroundKeepAlive(() => {
+      if (get().isPlaying && ytPlayer?.playVideo) {
+        try { ytPlayer.playVideo(); } catch { /* ignore */ }
+      }
+    });
   },
 
   playQueue: async (tracks, startIndex = 0) => {
