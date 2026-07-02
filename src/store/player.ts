@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Track, getRelated, searchTracks } from "@/lib/api";
 import { recordPlay, getTopArtists, getRecent } from "@/lib/history";
+import { backgroundPlaybackStart, backgroundPlaybackStop, installBackgroundKeepAlive } from "@/lib/background";
 
 type PlayerState = {
   audio: HTMLAudioElement | null;
@@ -256,6 +257,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
 
     set({ audio });
+
+    // Keep audio alive when app is backgrounded / screen off (best-effort).
+    installBackgroundKeepAlive(() => {
+      if (get().isPlaying && ytPlayer?.playVideo) {
+        try { ytPlayer.playVideo(); } catch { /* ignore */ }
+      }
+    });
   },
 
   playQueue: async (tracks, startIndex = 0) => {
@@ -310,6 +318,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     console.log("PLAY NEW SONG", track.videoId, track.title);
     console.log("PLAY START", track.videoId, streamUrl);
+    backgroundPlaybackStart();
 
     recordPlay(track);
 
@@ -368,17 +377,17 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   toggle: () => {
-    const { audio, current, isPlaying } = get();
+    const { audio, current } = get();
     if (!current) return;
     if (ytPlayer) {
       const state = ytPlayer.getPlayerState?.();
-      if (state === 1) { ytPlayer.pauseVideo?.(); set({ isPlaying: false }); }
-      else { ytPlayer.playVideo?.(); set({ isPlaying: true }); }
+      if (state === 1) { ytPlayer.pauseVideo?.(); set({ isPlaying: false }); backgroundPlaybackStop(); }
+      else { ytPlayer.playVideo?.(); set({ isPlaying: true }); backgroundPlaybackStart(); }
       return;
     }
     if (!audio) return;
-    if (audio.paused) { audio.play().catch(() => {/* ignore */}); set({ isPlaying: true }); }
-    else { audio.pause(); set({ isPlaying: false }); }
+    if (audio.paused) { audio.play().catch(() => {/* ignore */}); set({ isPlaying: true }); backgroundPlaybackStart(); }
+    else { audio.pause(); set({ isPlaying: false }); backgroundPlaybackStop(); }
   },
 
   next: () => {
