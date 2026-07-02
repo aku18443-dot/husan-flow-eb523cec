@@ -2,6 +2,7 @@ import { usePlayer } from "@/store/player";
 import { Pause, Play, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Loader2, Maximize2, Heart, Mic2, ListMusic, Volume1, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SleepTimer } from "./SleepTimer";
+import { isLiked, toggleLike, subscribeLibrary } from "@/lib/history";
 
 const fmt = (s: number) => {
   if (!isFinite(s) || s < 0) return "0:00";
