@@ -16,9 +16,9 @@ const SILENT_WAV_DATAURL =
 
 async function requestWakeLock() {
   try {
-    if ("wakeLock" in navigator && !wakeLock) {
-      // @ts-expect-error - wakeLock is not fully typed
-      wakeLock = await navigator.wakeLock.request("screen");
+    const nav = navigator as unknown as { wakeLock?: { request: (t: string) => Promise<any> } };
+    if (nav.wakeLock && !wakeLock) {
+      wakeLock = await nav.wakeLock.request("screen");
       wakeLock.addEventListener?.("release", () => { wakeLock = null; });
     }
   } catch { /* ignore */ }
