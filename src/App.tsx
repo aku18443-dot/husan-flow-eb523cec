@@ -31,6 +31,7 @@ const Shell = () => {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/artists" element={<ArtistsPage />} />
               <Route path="/artists/:name" element={<ArtistsPage />} />
+              <Route path="/library" element={<LibraryPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
