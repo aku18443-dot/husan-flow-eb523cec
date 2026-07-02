@@ -318,6 +318,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
     console.log("PLAY NEW SONG", track.videoId, track.title);
     console.log("PLAY START", track.videoId, streamUrl);
+    backgroundPlaybackStart();
 
     recordPlay(track);
 
