@@ -24,11 +24,19 @@ export const BottomPlayerBar = () => {
   const setExpanded = usePlayer((s) => s.setExpanded);
 
   const [volume, setVolume] = useState(0.8);
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     const audio = (window as unknown as { __husanAudio?: HTMLAudioElement }).__husanAudio;
     if (audio) audio.volume = volume;
   }, [volume]);
+
+  useEffect(() => {
+    setLiked(current ? isLiked(current.videoId) : false);
+    return subscribeLibrary(() => {
+      setLiked(current ? isLiked(current.videoId) : false);
+    });
+  }, [current]);
 
   if (!current) {
     return (
