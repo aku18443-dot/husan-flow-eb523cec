@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,60 +6,52 @@
 
 @layer base {
   :root {
-    /* NEON CYBER PINK — hot pink + electric cyan on deep violet-black */
-    --background: 280 60% 4%;
-    --foreground: 320 40% 98%;
+    /* Clean dark theme — Spotify-inspired */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
 
-    --card: 285 55% 8%;
-    --card-foreground: 320 40% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 285 60% 6%;
-    --popover-foreground: 320 40% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 328 100% 58%;            /* hot magenta pink */
+    --primary: 152 64% 40%;            /* spotify green */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 320 100% 72%;
 
-    --secondary: 285 40% 14%;
-    --secondary-foreground: 320 40% 98%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 285 30% 12%;
-    --muted-foreground: 300 20% 72%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 190 100% 55%;             /* electric cyan */
-    --accent-foreground: 285 60% 6%;
+    --accent: 152 64% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 320 60% 24%;
-    --input: 285 35% 14%;
-    --ring: 328 100% 58%;
+    --border: 0 0% 18%;
+    --input: 0 0% 14%;
+    --ring: 152 64% 40%;
 
-    --radius: 1.25rem;
+    --radius: 0.75rem;
 
-    /* Neon accents */
-    --neon-pink: 328 100% 58%;
-    --neon-cyan: 190 100% 55%;
-    --neon-purple: 275 90% 60%;
+    /* Compat aliases — map old neon names to clean values */
+    --neon-pink: 152 64% 40%;
+    --neon-cyan: 152 64% 40%;
+    --neon-purple: 152 64% 40%;
 
-    --gradient-hero: radial-gradient(ellipse 90% 60% at 15% 0%, hsl(328 100% 45% / 0.55), transparent 60%),
-                     radial-gradient(ellipse 70% 55% at 100% 20%, hsl(190 100% 45% / 0.32), transparent 55%),
-                     radial-gradient(ellipse 60% 40% at 85% 100%, hsl(275 90% 45% / 0.42), transparent 60%),
-                     linear-gradient(180deg, hsl(285 60% 8%) 0%, hsl(285 70% 4%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(285 55% 12% / 0.85), hsl(285 65% 6% / 0.92));
-    --gradient-accent: linear-gradient(135deg, hsl(328 100% 58%), hsl(275 90% 60%) 55%, hsl(190 100% 55%));
-    --gradient-glass: linear-gradient(135deg, hsl(328 100% 80% / 0.10), hsl(190 100% 80% / 0.04));
-    --gradient-animated: linear-gradient(120deg, hsl(328 100% 58%), hsl(275 90% 60%), hsl(190 100% 55%), hsl(328 100% 58%));
+    --gradient-hero: hsl(0 0% 10%);
+    --gradient-card: hsl(0 0% 10%);
+    --gradient-accent: hsl(152 64% 40%);
+    --gradient-glass: hsl(0 0% 12% / 0.85);
+    --gradient-animated: hsl(152 64% 40%);
+    --gradient-page: hsl(0 0% 7%);
 
-    --gradient-page: radial-gradient(circle at 0% 0%, hsl(328 90% 14%), transparent 55%),
-                     radial-gradient(circle at 100% 100%, hsl(190 90% 12%), transparent 55%),
-                     radial-gradient(circle at 50% 60%, hsl(275 80% 10%), transparent 55%),
-                     hsl(285 70% 3%);
-
-    --shadow-glow: 0 10px 60px -10px hsl(328 100% 58% / 0.7);
-    --shadow-neon: 0 0 24px hsl(328 100% 58% / 0.55), 0 0 60px hsl(190 100% 55% / 0.28);
-    --shadow-card: 0 20px 60px -20px hsl(285 90% 2% / 0.9);
+    --shadow-glow: 0 4px 20px -4px hsl(152 64% 40% / 0.5);
+    --shadow-neon: 0 4px 16px -4px hsl(152 64% 40% / 0.35);
+    --shadow-card: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
 
     --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -70,128 +62,85 @@
   html, body, #root { height: 100%; }
   body {
     @apply text-foreground;
-    background: var(--gradient-page);
+    background: hsl(var(--background));
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.01em;
   }
   h1, h2, h3, .font-display {
-    font-family: 'Syne', sans-serif;
-    letter-spacing: -0.03em;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
     font-weight: 800;
   }
-  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .font-mono { font-family: ui-monospace, monospace; }
 }
 
 @layer components {
   .glass {
-    background: var(--gradient-glass);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid hsl(328 100% 80% / 0.14);
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border));
   }
   .neon-card {
-    background: var(--gradient-card);
-    border: 1px solid hsl(328 100% 60% / 0.18);
-    box-shadow: 0 8px 32px -12px hsl(328 100% 40% / 0.4), inset 0 1px 0 hsl(328 100% 80% / 0.08);
-    backdrop-filter: blur(14px);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
   .neon-card:hover {
-    border-color: hsl(328 100% 60% / 0.45);
-    box-shadow: 0 12px 40px -10px hsl(328 100% 50% / 0.55), inset 0 1px 0 hsl(190 100% 80% / 0.12);
+    border-color: hsl(var(--primary) / 0.4);
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .text-gradient {
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: hsl(var(--primary));
   }
   .bg-gradient-animated {
-    background: var(--gradient-animated);
-    background-size: 300% 300%;
-    animation: gradient-shift 8s ease infinite;
+    background: hsl(var(--primary));
   }
-  .text-neon-pink { color: hsl(var(--neon-pink)); text-shadow: 0 0 12px hsl(var(--neon-pink) / 0.7); }
-  .text-neon-cyan { color: hsl(var(--neon-cyan)); text-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.7); }
+  .text-neon-pink { color: hsl(var(--primary)); }
+  .text-neon-cyan { color: hsl(var(--accent)); }
   .shadow-neon { box-shadow: var(--shadow-neon); }
-  .neon-ring { box-shadow: 0 0 0 1px hsl(328 100% 60% / 0.5), 0 0 28px hsl(328 100% 58% / 0.45); }
-  .bg-page { background: var(--gradient-page); }
-  .bg-gradient-hero { background: var(--gradient-hero); }
-  .bg-gradient-accent { background: var(--gradient-accent); }
-  .bg-gradient-card { background: var(--gradient-card); }
+  .neon-ring { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4); }
+  .bg-page { background: hsl(var(--background)); }
+  .bg-gradient-hero { background: hsl(var(--card)); }
+  .bg-gradient-accent { background: hsl(var(--primary)); }
+  .bg-gradient-card { background: hsl(var(--card)); }
   .shadow-card { box-shadow: var(--shadow-card); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
-
-  /* Neon border animation */
   .neon-border {
-    position: relative;
-  }
-  .neon-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: var(--gradient-animated);
-    background-size: 300% 300%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    animation: gradient-shift 6s linear infinite;
-    pointer-events: none;
+    border: 1px solid hsl(var(--primary) / 0.3);
   }
 }
 
 @keyframes float-up {
-  0% { opacity: 0; transform: translateY(20px); }
+  0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 @keyframes pulse-glow {
-  0%,100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 60px hsl(var(--primary) / 0.9), 0 0 90px hsl(var(--accent) / 0.4); }
+  0%,100% { box-shadow: 0 4px 20px -4px hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 8px 40px -4px hsl(var(--primary) / 0.7); }
 }
-@keyframes spin-slow { to { transform: rotate(360deg); } }
 @keyframes marquee {
   0%, 12% { transform: translateX(0); }
   88%, 100% { transform: translateX(calc(-100% + 180px)); }
-}
-@keyframes gradient-shift {
-  0%,100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-@keyframes blob-drift {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33% { transform: translate(4%, -6%) scale(1.15); }
-  66% { transform: translate(-5%, 5%) scale(0.92); }
-}
-@keyframes neon-flicker {
-  0%,100% { opacity: 1; }
-  47% { opacity: 0.85; }
-  49% { opacity: 1; }
-  51% { opacity: 0.9; }
 }
 @keyframes bar-eq {
   0%,100% { transform: scaleY(0.4); }
   50% { transform: scaleY(1); }
 }
 
-.animate-float-up { animation: float-up 0.6s var(--transition-smooth) both; }
+.animate-float-up { animation: float-up 0.4s ease both; }
 .animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
-.animate-spin-slow { animation: spin-slow 8s linear infinite; }
 .animate-marquee { display: inline-block; animation: marquee 9s ease-in-out infinite; }
-.animate-blob { animation: blob-drift 18s ease-in-out infinite; }
-.animate-neon-flicker { animation: neon-flicker 4s infinite; }
 
-/* Neon progress slider */
+/* Progress slider */
 .player-progress {
   appearance: none;
   -webkit-appearance: none;
   height: 4px;
   border-radius: 999px;
-  background-color: hsl(285 30% 22%);
-  background-image: var(--gradient-accent);
+  background-color: hsl(0 0% 20%);
+  background-image: hsl(var(--primary));
   background-repeat: no-repeat;
   background-size: 0% 100%;
   cursor: pointer;
@@ -202,19 +151,17 @@
 .player-progress::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  height: 14px;
-  width: 14px;
+  height: 12px;
+  width: 12px;
   border-radius: 50%;
   background: hsl(0 0% 100%);
-  box-shadow: 0 0 8px hsl(var(--primary));
   opacity: 0;
   transition: opacity 0.15s ease;
   border: none;
 }
 .player-progress:hover::-webkit-slider-thumb { opacity: 1; }
 .player-progress::-moz-range-thumb {
-  height: 14px; width: 14px; border-radius: 50%;
+  height: 12px; width: 12px; border-radius: 50%;
   background: hsl(0 0% 100%); border: none; opacity: 0;
-  box-shadow: 0 0 8px hsl(var(--primary));
 }
 .player-progress:hover::-moz-range-thumb { opacity: 1; }
