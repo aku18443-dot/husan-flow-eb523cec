@@ -11,7 +11,6 @@ import { ArtistAvatar } from "@/components/ArtistAvatar";
 import { CardShimmerRow } from "@/components/Shimmer";
 import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { InfiniteFeed } from "@/components/InfiniteFeed";
-import { AIMoodDJ } from "@/components/AIMoodDJ";
 import { usePlayer } from "@/store/player";
 import { getRecent, getMostPlayed, getTopArtists } from "@/lib/history";
 import { Loader2, Play, Send, Radio, Flame, Sparkles } from "lucide-react";
@@ -19,7 +18,7 @@ import husanLogo from "@/assets/husan-logo.png";
 
 const Row = ({ title, tracks, loading }: { title: React.ReactNode; tracks: Track[]; loading?: boolean }) => (
   <section className="space-y-3">
-    <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
+    <h2 className="text-xl font-bold tracking-tight">{title}</h2>
     {loading && tracks.length === 0 ? (
       <CardShimmerRow />
     ) : tracks.length === 0 ? null : (
@@ -52,7 +51,7 @@ const Index = () => {
 
   useEffect(() => {
     init();
-    document.title = "Husan Music — Neon Bollywood Streaming";
+    document.title = "Husan Music — Bollywood Streaming";
   }, [init]);
 
   useEffect(() => {
@@ -97,85 +96,46 @@ const Index = () => {
   };
 
   const hero = discover[0];
-  const bento = discover.slice(1, 5);
 
   return (
     <div className="min-h-full pb-8">
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-6 md:px-8">
-        {/* HERO — brand + AI Mood DJ */}
-        <section className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-          <div className="neon-card relative flex flex-col justify-between overflow-hidden rounded-3xl p-6 md:p-8">
-            <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/30 blur-3xl" />
-            <div className="flex items-center gap-3">
-              <img src={husanLogo} alt="Husan Music" className="h-12 w-12 rounded-xl shadow-glow" />
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-neon-cyan">Neon Music OS</p>
-                <h1 className="font-display text-3xl md:text-4xl font-black leading-none">
-                  Husan <span className="text-gradient">Music</span>
-                </h1>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <p className="max-w-md text-sm text-muted-foreground">
-                Unlimited Bollywood, powered by AI. Type a vibe, hit play, lose yourself.
+        {/* HERO */}
+        <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <img src={husanLogo} alt="Husan Music" className="h-16 w-16 rounded-xl shadow-glow" />
+            <div>
+              <h1 className="text-3xl font-black leading-none md:text-4xl">
+                Husan Music
+              </h1>
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                Unlimited Bollywood streaming. Search, play, enjoy.
               </p>
-              {hero && (
-                <button
-                  onClick={() => playQueue(discover, 0)}
-                  className="group inline-flex items-center gap-3 rounded-full bg-gradient-accent px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-neon transition-transform hover:scale-105"
-                >
-                  <Play className="h-4 w-4 fill-current" /> Play Trending
-                  <span className="text-[10px] font-medium opacity-80">
-                    {discover.length} songs
-                  </span>
-                </button>
-              )}
             </div>
           </div>
-
-          <AIMoodDJ />
-        </section>
-
-        {/* BENTO GRID — Recent / Most / New in mixed tiles */}
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {bento.map((t, i) => (
+          {hero && (
             <button
-              key={t.videoId}
-              onClick={() => playQueue(bento, i)}
-              className={`neon-card group relative overflow-hidden rounded-2xl text-left ${
-                i === 0 ? "col-span-2 row-span-2 aspect-square md:aspect-auto md:min-h-[280px]" : "aspect-square"
-              }`}
+              onClick={() => playQueue(discover, 0)}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-transform hover:scale-105"
             >
-              <img
-                src={t.thumbnail}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-70 transition-transform group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className={`font-display font-bold leading-tight ${i === 0 ? "text-lg md:text-2xl" : "text-sm"} line-clamp-2`}>
-                  {t.title}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground line-clamp-1">{t.artist}</p>
-              </div>
-              <div className="absolute right-2 top-2 rounded-full bg-primary p-2 opacity-0 shadow-neon transition-opacity group-hover:opacity-100">
-                <Play className="h-3.5 w-3.5 fill-current text-primary-foreground" />
-              </div>
+              <Play className="h-4 w-4 fill-current" /> Play Trending
+              <span className="text-[10px] font-medium opacity-80">
+                {discover.length} songs
+              </span>
             </button>
-          ))}
+          )}
         </section>
 
         {recent.length > 0 && <Row title="⏱ Recently Played" tracks={recent} />}
         {mostPlayed.length > 0 && (
           <Row
-            title={<span className="inline-flex items-center gap-2"><Flame className="h-5 w-5 text-neon-pink" /> Most Played</span>}
+            title={<span className="inline-flex items-center gap-2"><Flame className="h-5 w-5 text-primary" /> Most Played</span>}
             tracks={mostPlayed}
           />
         )}
         {recommended.length > 0 && (
           <Row
-            title={<span className="inline-flex items-center gap-2"><Sparkles className="h-5 w-5 text-neon-cyan" /> Recommended For You</span>}
+            title={<span className="inline-flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Recommended For You</span>}
             tracks={recommended}
           />
         )}
@@ -189,8 +149,8 @@ const Index = () => {
         {/* Artists */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl font-bold tracking-tight inline-flex items-center gap-2">
-              <Radio className="h-5 w-5 text-neon-pink" /> Top Artists
+            <h2 className="text-xl font-bold tracking-tight inline-flex items-center gap-2">
+              <Radio className="h-5 w-5 text-primary" /> Top Artists
             </h2>
             <a href="/artists" className="text-xs font-semibold text-primary hover:underline">
               See all →
@@ -203,7 +163,7 @@ const Index = () => {
                 onClick={() => openArtist(a.name)}
                 className="group flex w-24 shrink-0 flex-col items-center gap-2"
               >
-                <div className="rounded-full ring-2 ring-transparent transition-all group-hover:ring-primary/70 group-hover:shadow-neon">
+                <div className="rounded-full ring-2 ring-transparent transition-all group-hover:ring-primary/70">
                   <ArtistAvatar name={a.name} size={96} />
                 </div>
                 <span className="text-center text-xs font-medium">{a.name}</span>
@@ -213,11 +173,11 @@ const Index = () => {
           {activeArtist && (
             <div className="neon-card space-y-2 rounded-2xl p-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-base font-bold">{activeArtist}</h3>
+                <h3 className="text-base font-bold">{activeArtist}</h3>
                 {artistTracks.length > 0 && (
                   <button
                     onClick={() => playQueue(artistTracks, 0)}
-                    className="rounded-full bg-gradient-accent px-3 py-1 text-xs font-bold text-primary-foreground shadow-neon"
+                    className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground"
                   >
                     Play All
                   </button>
@@ -244,17 +204,17 @@ const Index = () => {
         <InfiniteFeed />
 
         <section className="neon-card rounded-2xl p-5 text-center">
-          <p className="font-display text-sm text-muted-foreground">Stay Connected</p>
+          <p className="text-sm text-muted-foreground">Stay Connected</p>
           <a
             href="https://t.me/HusanMusic"
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-2 font-display text-lg font-bold text-gradient"
+            className="mt-2 inline-flex items-center gap-2 text-lg font-bold text-primary"
           >
-            <Send className="h-5 w-5 text-primary" /> @HusanMusic
+            <Send className="h-5 w-5" /> @HusanMusic
           </a>
           <p className="mt-3 text-xs text-muted-foreground">
-            Made By <span className="font-display font-bold text-gradient">Akshay</span>
+            Made By <span className="font-bold text-primary">Akshay</span>
           </p>
         </section>
       </main>

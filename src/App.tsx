@@ -13,18 +13,16 @@ import { FullPlayer } from "./components/FullPlayer";
 import { LeftSidebar } from "./components/LeftSidebar";
 import { BottomPlayerBar } from "./components/BottomPlayerBar";
 import { MiniPlayer } from "./components/MiniPlayer";
-import { NeonBackground } from "./components/NeonBackground";
 import { usePlayer } from "./store/player";
 
 const queryClient = new QueryClient();
 
 const Shell = () => {
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden text-foreground">
-      <NeonBackground />
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <div className="flex min-h-0 flex-1 gap-2 p-2 pb-0">
         <LeftSidebar />
-        <main className="relative min-w-0 flex-1 overflow-hidden rounded-2xl bg-gradient-hero shadow-card ring-1 ring-primary/20">
+        <main className="relative min-w-0 flex-1 overflow-hidden rounded-xl bg-card shadow-card ring-1 ring-border">
           <div className="scrollbar-hide h-full overflow-y-auto">
             <Routes>
               <Route path="/" element={<Index />} />

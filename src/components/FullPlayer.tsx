@@ -29,7 +29,7 @@ export const FullPlayer = () => {
     <div
       className="fixed inset-0 z-50 flex flex-col p-6 animate-float-up"
       style={{
-        background: `linear-gradient(180deg, hsl(141 50% 18%) 0%, hsl(0 0% 7%) 60%)`,
+        background: `linear-gradient(180deg, hsl(0 0% 12%) 0%, hsl(0 0% 5%) 60%)`,
       }}
     >
       <div className="flex items-center justify-between">
@@ -53,16 +53,12 @@ export const FullPlayer = () => {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
-        <div
-          className={`relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-glow ${
-            isPlaying ? "animate-pulse-glow" : ""
-          }`}
-        >
+        <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-glow">
           <img src={current.thumbnail} alt={current.title} className="h-full w-full object-cover" />
         </div>
 
         <div className="w-full max-w-sm text-center">
-          <h2 className="line-clamp-2 font-display text-2xl font-bold">{current.title}</h2>
+          <h2 className="line-clamp-2 text-2xl font-bold">{current.title}</h2>
           <p className="mt-1 text-muted-foreground">{current.artist}</p>
         </div>
 
@@ -105,7 +101,7 @@ export const FullPlayer = () => {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Made By <span className="font-bold text-gradient">Akshay</span>
+        Made By <span className="font-bold text-primary">Akshay</span>
       </p>
     </div>
   );
