@@ -40,8 +40,8 @@ export const BottomPlayerBar = () => {
 
   if (!current) {
     return (
-      <div className="mx-2 my-2 h-[72px] shrink-0 rounded-2xl neon-card flex items-center justify-center text-xs text-muted-foreground">
-        <Play className="h-3.5 w-3.5 mr-2 text-neon-pink" /> Pick a song to start the vibe
+      <div className="mx-2 my-2 h-[72px] shrink-0 rounded-xl bg-card flex items-center justify-center text-xs text-muted-foreground ring-1 ring-border">
+        <Play className="h-3.5 w-3.5 mr-2 text-primary" /> Pick a song to start
       </div>
     );
   }
@@ -49,26 +49,15 @@ export const BottomPlayerBar = () => {
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
-    <div className="mx-2 my-2 h-[84px] shrink-0 rounded-2xl neon-card px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 shadow-neon">
+    <div className="mx-2 my-2 h-[84px] shrink-0 rounded-xl bg-card px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 ring-1 ring-border">
       {/* Left: Track info */}
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={() => setExpanded(true)}
-          className={`relative shrink-0 overflow-hidden rounded-lg ring-1 ring-primary/40 ${isPlaying ? "shadow-neon" : ""}`}
+          className="relative shrink-0 overflow-hidden rounded-lg ring-1 ring-border"
           aria-label="Open full player"
         >
           <img src={current.thumbnail} alt="" className="h-14 w-14 object-cover" />
-          {isPlaying && (
-            <div className="absolute inset-0 flex items-end justify-center gap-0.5 bg-black/30 pb-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="block h-3 w-0.5 origin-bottom rounded-full bg-neon-cyan"
-                  style={{ backgroundColor: "hsl(var(--accent))", animation: "bar-eq 0.9s ease-in-out infinite", animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
-          )}
         </button>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold hover:underline cursor-pointer">{current.title}</p>
@@ -87,7 +76,7 @@ export const BottomPlayerBar = () => {
       {/* Center: Controls + Progress */}
       <div className="flex w-[min(720px,55vw)] flex-col items-center gap-1.5">
         <div className="flex items-center gap-4">
-          <button className="text-muted-foreground hover:text-neon-cyan" aria-label="Shuffle">
+          <button className="text-muted-foreground hover:text-foreground" aria-label="Shuffle">
             <Shuffle className="h-4 w-4" />
           </button>
           <button onClick={prev} className="text-foreground/80 hover:text-foreground" aria-label="Previous">
@@ -95,7 +84,7 @@ export const BottomPlayerBar = () => {
           </button>
           <button
             onClick={toggle}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-neon transition-transform hover:scale-110"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-110"
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isLoading ? (
@@ -109,7 +98,7 @@ export const BottomPlayerBar = () => {
           <button onClick={next} className="text-foreground/80 hover:text-foreground" aria-label="Next">
             <SkipForward className="h-5 w-5 fill-current" />
           </button>
-          <button className="text-muted-foreground hover:text-neon-cyan" aria-label="Repeat">
+          <button className="text-muted-foreground hover:text-foreground" aria-label="Repeat">
             <Repeat className="h-4 w-4" />
           </button>
         </div>
